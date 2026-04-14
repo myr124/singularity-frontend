@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model DevUser {
+  id          String       @id @default(cuid())
+  displayName String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  sessions    RunSession[]
+}
+
+model RunSession {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String
+  accentColor String    @default("#52d6ff")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  ownerId     String?
+  owner       DevUser?  @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  steps       RunStep[]
+}
+
+model RunStep {
+  id              String     @id @default(cuid())
+  sessionId       String
+  stepIndex       Int
+  envState        Json
+  decision        Json
+  iterations      Json
+  transition      Json
+  availableAction Json?
+  createdAt       DateTime   @default(now())
+  session         RunSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, stepIndex])
+  @@index([sessionId])
+}

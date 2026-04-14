@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+:root {
+  --background: #06111f;
+  --background-2: #081829;
+  --panel: rgba(7, 18, 32, 0.74);
+  --panel-border: rgba(113, 221, 255, 0.18);
+  --text: #ebf7ff;
+  --cyan: #73f0ff;
+}
+
+@theme {
+  --font-sans: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-mono: "SF Mono", "Menlo", "Consolas", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at top, rgba(43, 127, 255, 0.18), transparent 32%),
+    radial-gradient(circle at 20% 20%, rgba(115, 240, 255, 0.16), transparent 24%),
+    linear-gradient(180deg, var(--background), var(--background-2));
+  color: var(--text);
+  font-family: var(--font-sans), sans-serif;
+}
+
+button:disabled {
+  pointer-events: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.panel {
+  border: 1px solid var(--panel-border);
+  background:
+    linear-gradient(180deg, rgba(8, 19, 36, 0.96), rgba(6, 16, 30, 0.74)),
+    rgba(7, 18, 32, 0.74);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 12px 40px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(20px);
+}
+
+.grid-noise {
+  background-image:
+    linear-gradient(rgba(115, 240, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(115, 240, 255, 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.singularity-wordmark {
+  position: relative;
+  display: inline-block;
+  font-family: "Avenir Next Condensed", "Arial Narrow", "Avenir Next", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  line-height: 1.12;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 18px rgba(115, 240, 255, 0.16),
+    0 0 42px rgba(43, 127, 255, 0.18);
+}
+
+.singularity-wordmark::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -1.25rem;
+  height: 1px;
+  width: min(18rem, 42vw);
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, rgba(115, 240, 255, 0.75), transparent);
+  box-shadow: 0 0 16px rgba(115, 240, 255, 0.3);
+}
