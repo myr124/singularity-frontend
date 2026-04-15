@@ -1,8 +1,5 @@
-import { VisualizerWorkspace } from "~/components/visualizer-workspace";
-import { api } from "~/trpc/server";
+import { LandingPage } from "~/components/landing-page";
 
-export default async function HomePage() {
-  const run = await api.run.current();
-
-  return <VisualizerWorkspace run={run} />;
+export default function HomePage() {
+  return <LandingPage />;
 }

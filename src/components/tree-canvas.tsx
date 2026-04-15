@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 
 import type { EnvState, MCTSNode } from "~/lib/contracts";
@@ -65,13 +66,19 @@ export function TreeCanvas({
     isGenerating = false,
     onSelectNode,
 }: TreeCanvasProps) {
-    const layout = buildTreeLayout(nodes, WIDTH, HEIGHT);
-    const visibleSet = new Set(visibleNodeIds ?? layout.map((node) => node.nodeId));
-    const visibleLayout = layout.filter((node) => visibleSet.has(node.nodeId));
-    const nodeById = new Map(visibleLayout.map((node) => [node.nodeId, node]));
+    const layout = useMemo(() => buildTreeLayout(nodes, WIDTH, HEIGHT), [nodes]);
+    const visibleLayout = useMemo(() => {
+        const set = new Set(visibleNodeIds ?? layout.map((n) => n.nodeId));
+        return layout.filter((n) => set.has(n.nodeId));
+    }, [layout, visibleNodeIds]);
+    const nodeById = useMemo(
+        () => new Map(visibleLayout.map((n) => [n.nodeId, n])),
+        [visibleLayout],
+    );
+    const selectedPathSet = useMemo(() => new Set(selectedPath), [selectedPath]);
 
     return (
-        <section className="panel grid-noise relative overflow-hidden rounded-[36px] p-5">
+        <section className="subpanel grid-noise relative overflow-hidden rounded-[36px] p-5">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(115,240,255,0.18),transparent_28%),radial-gradient(circle_at_80%_20%,rgba(43,127,255,0.14),transparent_24%)]" />
             <div className="relative z-10 mb-5 flex items-center justify-between gap-4">
                 <div>
@@ -116,53 +123,44 @@ export function TreeCanvas({
                     if (!node.parentId) return null;
                     const parent = nodeById.get(node.parentId);
                     if (!parent) return null;
-                    const active = selectedPath.includes(node.nodeId) && selectedPath.includes(parent.nodeId);
+                    const active = selectedPathSet.has(node.nodeId) && selectedPathSet.has(parent.nodeId);
                     const edgePath = `M ${parent.x} ${parent.y} C ${parent.x} ${(parent.y + node.y) / 2}, ${node.x} ${(parent.y + node.y) / 2}, ${node.x} ${node.y}`;
 
                     return (
-                        <g key={`${parent.nodeId}-${node.nodeId}`}>
-                            <motion.path
-                                d={edgePath}
-                                fill="none"
-                                stroke={active ? "url(#edge-gradient)" : "rgba(115, 240, 255, 0.14)"}
-                                strokeWidth={active ? 3.5 : 1.4}
-                                initial={{ pathLength: 0, opacity: 0.2 }}
-                                animate={{ pathLength: 1, opacity: active ? 1 : 0.8 }}
-                                transition={{ duration: isGenerating ? 0.46 : 1.1, ease: "easeOut" }}
-                            />
-                            {active ? (
-                                <motion.circle r={4} fill="#7af6ff" initial={{ opacity: 0 }} animate={{ opacity: [0.2, 1, 0.2] }} transition={{ duration: 2.8, repeat: Number.POSITIVE_INFINITY, ease: "linear", delay: isGenerating ? 0.22 : 0 }}>
-                                    <animateMotion
-                                        dur="2.8s"
-                                        repeatCount="indefinite"
-                                        path={edgePath}
-                                    />
-                                </motion.circle>
-                            ) : null}
-                        </g>
+                        <motion.path
+                            key={`${parent.nodeId}-${node.nodeId}`}
+                            d={edgePath}
+                            fill="none"
+                            stroke={active ? "url(#edge-gradient)" : "rgba(115, 240, 255, 0.14)"}
+                            strokeWidth={active ? 3.5 : 1.4}
+                            initial={{ pathLength: 0, opacity: 0.2 }}
+                            animate={{ pathLength: 1, opacity: active ? 1 : 0.8 }}
+                            transition={{ duration: isGenerating ? 0.46 : 1.1, ease: "easeOut" }}
+                        />
                     );
                 })}
                 {visibleLayout.map((node, index) => {
-                    const active = selectedPath.includes(node.nodeId);
+                    const active = selectedPathSet.has(node.nodeId);
                     const selected = node.nodeId === selectedNodeId;
                     const showEmbeddedPreview = selected || active;
                     const nodeRadius = selected ? 22 : active ? 18 : 13;
+                    const useGlow = selected || active;
 
                     return (
                         <motion.g
                             key={node.nodeId}
                             initial={{ opacity: 0, scale: 0.55 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.34, delay: isGenerating ? 0.24 : index * 0.04 }}
+                            transition={{ duration: 0.34, delay: isGenerating ? 0.24 : Math.min(index * 0.02, 0.6) }}
                         >
-                            <motion.circle
+                            <circle
                                 cx={node.x}
                                 cy={node.y}
                                 r={nodeRadius}
                                 fill={selected ? "rgba(115, 240, 255, 0.28)" : "rgba(12, 30, 56, 0.96)"}
                                 stroke={selected ? "#90fbff" : active ? "#73f0ff" : "rgba(115, 240, 255, 0.36)"}
                                 strokeWidth={selected ? 2.6 : 1.4}
-                                filter="url(#node-glow)"
+                                filter={useGlow ? "url(#node-glow)" : undefined}
                                 style={{ cursor: "pointer" }}
                                 onClick={() => onSelectNode(node.nodeId)}
                             />
@@ -181,13 +179,11 @@ export function TreeCanvas({
                                     />
                                 </foreignObject>
                             ) : (
-                                <motion.circle
+                                <circle
                                     cx={node.x}
                                     cy={node.y}
                                     r={selected ? 7.5 : 5}
                                     fill={selected ? "#ffffff" : active ? "#7af6ff" : "#2e6fe6"}
-                                    animate={active ? { r: [5, 7.8, 5] } : undefined}
-                                    transition={{ duration: 2.2, repeat: Number.POSITIVE_INFINITY }}
                                 />
                             )}
                             <text x={node.x} y={node.y - 30} textAnchor="middle" className="fill-cyan-50/80 text-[11px] tracking-[0.24em]">

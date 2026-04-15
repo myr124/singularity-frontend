@@ -69,7 +69,7 @@ export function IterationTimeline({
   );
 
   return (
-    <section className="panel rounded-[28px] p-5">
+    <section className="subpanel rounded-[28px] p-5">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.32em] text-cyan-100/55">Iteration Replay</p>

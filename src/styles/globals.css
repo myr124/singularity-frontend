@@ -53,6 +53,21 @@ a {
   backdrop-filter: blur(20px);
 }
 
+.subpanel {
+  background: transparent;
+  border: none;
+}
+
+.divider-v {
+  background: linear-gradient(180deg, transparent, rgba(115, 240, 255, 0.14), transparent);
+  width: 1px;
+}
+
+.divider-h {
+  background: linear-gradient(90deg, transparent, rgba(115, 240, 255, 0.14), transparent);
+  height: 1px;
+}
+
 .grid-noise {
   background-image:
     linear-gradient(rgba(115, 240, 255, 0.06) 1px, transparent 1px),
@@ -71,6 +86,30 @@ a {
   text-shadow:
     0 0 18px rgba(115, 240, 255, 0.16),
     0 0 42px rgba(43, 127, 255, 0.18);
+}
+
+.landing-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top, rgba(43, 127, 255, 0.18), transparent 32%),
+    radial-gradient(circle at 20% 20%, rgba(115, 240, 255, 0.16), transparent 24%),
+    linear-gradient(180deg, var(--background), var(--background-2));
+}
+
+.btn-get-started {
+  animation: pulse-glow 2.5s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(115, 240, 255, 0.15), 0 0 32px rgba(115, 240, 255, 0.08);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(115, 240, 255, 0.3), 0 0 48px rgba(115, 240, 255, 0.15);
+  }
 }
 
 .singularity-wordmark::after {

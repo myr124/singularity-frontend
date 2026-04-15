@@ -202,8 +202,15 @@ export function VisualizerWorkspace({ run }: { run: RunDataset }) {
                     </div>
                 </motion.header>
 
-                <section className="space-y-5">
-                    <div>
+                <section className="relative left-1/2 right-1/2 -mx-[50vw] w-screen px-4 md:px-6 lg:px-8">
+                  <div className="panel rounded-[36px] p-2 md:p-3">
+                    <div className="grid xl:grid-cols-[minmax(260px,320px)_1px_minmax(0,1fr)_1px_minmax(260px,320px)]">
+                        <div>
+                            <CandidateActions candidates={activeCandidates} />
+                            <div className="divider-h mx-5" />
+                            <DecisionSummary decision={run.decision} />
+                        </div>
+                        <div className="divider-v hidden xl:block" />
                         <TreeCanvas
                             nodes={run.nodes}
                             selectedPath={activeIteration?.selectedPath ?? ["root"]}
@@ -216,71 +223,74 @@ export function VisualizerWorkspace({ run }: { run: RunDataset }) {
                                 setSelectedNodeId(nodeId);
                             }}
                         />
-                        <IterationTimeline
-                            iterations={run.iterations}
-                            frames={focusFrames}
-                            selectedIteration={selectedIteration}
-                            isPlaying={phase === "ready" && isPlaying}
-                            playbackRate={playbackRate}
-                            onSelect={(iterationIndex) => {
-                                if (phase !== "ready") return;
-                                setIsPlaying(false);
-                                selectIteration(iterationIndex);
-                            }}
-                            onTogglePlayback={() => {
-                                if (phase !== "ready") return;
-                                setIsPlaying((current) => !current);
-                            }}
-                            onReset={() => {
-                                if (phase !== "ready") return;
-                                setIsPlaying(false);
-                                const first = playbackSteps[0];
-                                if (first !== undefined) selectIteration(first);
-                            }}
-                            onPlaybackRateChange={(rate) => {
-                                if (phase !== "ready") return;
-                                setPlaybackRate(rate);
-                            }}
-                        />
-                        <TransitionDiff transition={run.transition} />
+                        <div className="divider-v hidden xl:block" />
+                        <div>
+                            <section className="subpanel rounded-[28px] p-5">
+                                <p className="text-xs uppercase tracking-[0.32em] text-cyan-100/55">Live Replay</p>
+                                <h2 className="mt-1 text-xl font-semibold text-white">
+                                    Iteration {activeIterationIndex}
+                                </h2>
+                                <p className="mt-3 text-sm leading-6 text-cyan-50/78">
+                                    Replaying path{" "}
+                                    <span className="font-mono text-cyan-200">
+                                        {activePath.join(" → ")}
+                                    </span>
+                                </p>
+                                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                    <div className="rounded-[22px] border border-cyan-300/14 bg-white/[0.03] p-3">
+                                        <p className="text-xs uppercase tracking-[0.22em] text-cyan-100/45">Expanded</p>
+                                        <p className="mt-2 font-mono text-sm text-white">
+                                            {activeExpandedNode}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-[22px] border border-cyan-300/14 bg-white/[0.03] p-3">
+                                        <p className="text-xs uppercase tracking-[0.22em] text-cyan-100/45">Sim result</p>
+                                        <p className="mt-2 font-mono text-sm text-white">{activeSimulationValue}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleAdvancePreview}
+                                    disabled={phase !== "ready"}
+                                    className="mt-4 rounded-full border border-cyan-300/16 px-4 py-2 text-xs uppercase tracking-[0.24em] text-cyan-100/72 transition enabled:hover:border-cyan-200/30 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    Advance One Step
+                                </button>
+                            </section>
+                            <div className="divider-h mx-5" />
+                            <TransitionDiff transition={run.transition} />
+                        </div>
                     </div>
 
-                    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_420px]">
-                        <CandidateActions candidates={activeCandidates} />
-                        <DecisionSummary decision={run.decision} />
-                        <section className="panel rounded-[28px] p-5">
-                            <p className="text-xs uppercase tracking-[0.32em] text-cyan-100/55">Live Replay</p>
-                            <h2 className="mt-1 text-xl font-semibold text-white">
-                                Iteration {activeIterationIndex}
-                            </h2>
-                            <p className="mt-3 text-sm leading-6 text-cyan-50/78">
-                                Replaying path{" "}
-                                <span className="font-mono text-cyan-200">
-                                    {activePath.join(" → ")}
-                                </span>
-                            </p>
-                            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                                <div className="rounded-[22px] border border-cyan-300/14 bg-white/[0.03] p-3">
-                                    <p className="text-xs uppercase tracking-[0.22em] text-cyan-100/45">Expanded</p>
-                                    <p className="mt-2 font-mono text-sm text-white">
-                                        {activeExpandedNode}
-                                    </p>
-                                </div>
-                                <div className="rounded-[22px] border border-cyan-300/14 bg-white/[0.03] p-3">
-                                    <p className="text-xs uppercase tracking-[0.22em] text-cyan-100/45">Sim result</p>
-                                    <p className="mt-2 font-mono text-sm text-white">{activeSimulationValue}</p>
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={handleAdvancePreview}
-                                disabled={phase !== "ready"}
-                                className="mt-4 rounded-full border border-cyan-300/16 px-4 py-2 text-xs uppercase tracking-[0.24em] text-cyan-100/72 transition enabled:hover:border-cyan-200/30 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                                Advance One Step
-                            </button>
-                        </section>
-                    </div>
+                    <div className="divider-h mx-5 my-2" />
+
+                    <IterationTimeline
+                        iterations={run.iterations}
+                        frames={focusFrames}
+                        selectedIteration={selectedIteration}
+                        isPlaying={phase === "ready" && isPlaying}
+                        playbackRate={playbackRate}
+                        onSelect={(iterationIndex) => {
+                            if (phase !== "ready") return;
+                            setIsPlaying(false);
+                            selectIteration(iterationIndex);
+                        }}
+                        onTogglePlayback={() => {
+                            if (phase !== "ready") return;
+                            setIsPlaying((current) => !current);
+                        }}
+                        onReset={() => {
+                            if (phase !== "ready") return;
+                            setIsPlaying(false);
+                            const first = playbackSteps[0];
+                            if (first !== undefined) selectIteration(first);
+                        }}
+                        onPlaybackRateChange={(rate) => {
+                            if (phase !== "ready") return;
+                            setPlaybackRate(rate);
+                        }}
+                    />
+                  </div>
                 </section>
                     </motion.div>
                 )}

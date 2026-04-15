@@ -6,7 +6,7 @@ export function TransitionDiff({ transition }: { transition: StepResult }) {
   const changedCells = countChangedCells(transition.prevState.frame, transition.nextState.frame);
 
   return (
-    <section className="panel rounded-[28px] p-5">
+    <section className="subpanel rounded-[28px] p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.32em] text-cyan-100/55">Transition Diff</p>
@@ -14,7 +14,7 @@ export function TransitionDiff({ transition }: { transition: StepResult }) {
         </div>
         <div className="font-mono text-xs uppercase tracking-[0.26em] text-cyan-100/65">reward +{transition.reward.toFixed(2)}</div>
       </div>
-      <div className="mt-4 grid gap-4 xl:grid-cols-2">
+      <div className="mt-4 grid gap-3 grid-cols-2 min-w-0">
         <StateGrid state={transition.prevState} label="Before" compact />
         <StateGrid state={transition.nextState} label="After" compact />
       </div>

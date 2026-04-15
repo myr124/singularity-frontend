@@ -2,7 +2,7 @@ import type { ActionCandidate } from "~/lib/contracts";
 
 export function CandidateActions({ candidates }: { candidates: ActionCandidate[] }) {
   return (
-    <section className="panel rounded-[28px] p-5">
+    <section className="subpanel rounded-[28px] p-5">
       <p className="text-xs uppercase tracking-[0.32em] text-cyan-100/55">Candidate Actions</p>
       <div className="mt-4 space-y-3">
         {candidates.map((candidate) => (

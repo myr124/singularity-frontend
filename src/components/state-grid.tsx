@@ -13,15 +13,15 @@ export function StateGrid({ state, label, compact = false }: StateGridProps) {
   const size = frame.length;
 
   return (
-    <div className="panel rounded-[28px] p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-cyan-100/60">{label}</p>
-          <h3 className="text-sm font-medium text-white/90">Step {state.stepIndex}</h3>
+    <div className="rounded-[28px] border border-cyan-300/14 bg-white/[0.03] p-3 min-w-0">
+      <div className="mb-3 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/60">{label}</p>
+          <div className="shrink-0 rounded-full border border-cyan-300/20 px-1.5 py-0.5 text-[8px] uppercase tracking-[0.14em] text-cyan-100/70">
+            {state.state}
+          </div>
         </div>
-        <div className="rounded-full border border-cyan-300/20 px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-cyan-100/70">
-          {state.state}
-        </div>
+        <h3 className="mt-1 truncate text-xs font-medium text-white/90">Step {state.stepIndex}</h3>
       </div>
       <div
         className="grid aspect-square overflow-hidden rounded-[22px] border border-cyan-300/14 bg-[#030b13]"
