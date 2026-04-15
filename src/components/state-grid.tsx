@@ -4,11 +4,11 @@ const palette = ["#071321", "#184b63", "#1c91a7", "#36d4ff", "#6df0ff", "#2677ff
 
 type StateGridProps = {
   state: EnvState;
-  label: string;
+  label?: string;
   compact?: boolean;
 };
 
-export function StateGrid({ state, label, compact = false }: StateGridProps) {
+export function StateGrid({ state, label = "State", compact = false }: StateGridProps) {
   const frame = state.frame;
   const size = frame.length;
 

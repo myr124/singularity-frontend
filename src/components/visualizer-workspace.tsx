@@ -6,11 +6,22 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CandidateActions } from "~/components/candidate-actions";
 import { DecisionSummary } from "~/components/decision-summary";
 import { IterationTimeline } from "~/components/iteration-timeline";
-import { TransitionDiff } from "~/components/transition-diff";
 import { TreeCanvas } from "~/components/tree-canvas";
-import type { MCTSNode, RunDataset } from "~/lib/contracts";
+import type { MCTSNode, RunDataset } from "~/lib/mcts/types";
+import { getTaskConfig } from "~/lib/tasks/registry";
+import type { TaskConfig } from "~/lib/tasks/types";
 
-export function VisualizerWorkspace({ run }: { run: RunDataset }) {
+export function VisualizerWorkspace<S, A extends { action: string; rationale: string | null }>({
+  run: runProp,
+  taskId,
+}: {
+  run: RunDataset<S, A>;
+  taskId: string;
+}) {
+    const task = getTaskConfig(taskId) as TaskConfig<S, A> | undefined;
+    if (!task) throw new Error(`Unknown task: ${taskId}`);
+
+    const run = runProp;
     const [phase, setPhase] = useState<"booting" | "generating" | "ready">("booting");
     const [selectedIteration, setSelectedIteration] = useState(run.iterations.at(-1)?.iterationIndex ?? 1);
     const [selectedNodeId, setSelectedNodeId] = useState(run.iterations.at(-1)?.expandedNodeId ?? "root");
@@ -40,7 +51,7 @@ export function VisualizerWorkspace({ run }: { run: RunDataset }) {
     const currentStepPosition = playbackSteps.indexOf(selectedIteration);
     const currentStepPositionRef = useRef(currentStepPosition);
     const revealOrder = useMemo(() => {
-        const children = new Map<string, MCTSNode[]>();
+        const children = new Map<string, MCTSNode<S, A>[]>();
         const root = run.nodes.find((node) => node.parentId === null);
         if (!root) return run.nodes;
 
@@ -52,7 +63,7 @@ export function VisualizerWorkspace({ run }: { run: RunDataset }) {
             children.set(node.parentId, branch);
         }
 
-        const ordered: MCTSNode[] = [];
+        const ordered: MCTSNode<S, A>[] = [];
         const queue = [root];
 
         while (queue.length > 0) {
@@ -134,8 +145,28 @@ export function VisualizerWorkspace({ run }: { run: RunDataset }) {
         currentStepPosition >= playbackSteps.length - 1 ? 0 : currentStepPosition + 1;
     const nextIteration = playbackSteps[nextIndex];
     const handleAdvancePreview = () => {
+        if (phase !== "ready") return;
         if (nextIteration !== undefined) selectIteration(nextIteration);
     };
+
+    const activeTransition = useMemo(() => {
+        if (!activeIteration) return run.transition;
+        const expandedNode = run.nodes.find((n) => n.nodeId === activeIteration.expandedNodeId);
+        if (!expandedNode || !expandedNode.parentId) return run.transition;
+        const parentNode = run.nodes.find((n) => n.nodeId === expandedNode.parentId);
+        if (!parentNode) return run.transition;
+        return {
+            actionTaken: expandedNode.action ?? run.transition.actionTaken,
+            prevState: parentNode.state,
+            nextState: expandedNode.state,
+            reward: expandedNode.meanValue - parentNode.meanValue,
+        };
+    }, [activeIteration, run.nodes, run.transition]);
+
+    const TransitionView = task.TransitionView;
+    const NodeStatePreview = task.NodeStatePreview;
+    const IterationPreview = task.IterationPreview;
+    const ActionMeta = task.ActionMeta;
 
     return (
         <main className="min-h-screen px-4 py-5 md:px-6 lg:px-8">
@@ -194,10 +225,10 @@ export function VisualizerWorkspace({ run }: { run: RunDataset }) {
                 >
                     <div className="relative flex flex-col items-center justify-center py-2">
                         <p className="mb-2 text-[10px] uppercase tracking-[0.5em] text-cyan-100/40 md:text-xs">
-                            Artificial Super Intelligence
+                            {task.name}
                         </p>
                         <h1 className="singularity-wordmark bg-[linear-gradient(135deg,#f7fdff_0%,#b8f7ff_22%,#67e7ff_46%,#2b7fff_76%,#f1fbff_100%)] bg-clip-text pb-4 text-center text-4xl text-transparent md:text-5xl">
-                            Singularity
+                            {run.title}
                         </h1>
                     </div>
                 </motion.header>
@@ -206,9 +237,16 @@ export function VisualizerWorkspace({ run }: { run: RunDataset }) {
                   <div className="panel rounded-[36px] p-2 md:p-3">
                     <div className="grid xl:grid-cols-[minmax(260px,320px)_1px_minmax(0,1fr)_1px_minmax(260px,320px)]">
                         <div>
-                            <CandidateActions candidates={activeCandidates} />
+                            <CandidateActions
+                                candidates={activeCandidates as (A & { action: string; rationale: string | null })[]}
+                                renderActionMeta={(action) => <ActionMeta action={action} />}
+                                formatActionKey={task.formatActionKey}
+                            />
                             <div className="divider-h mx-5" />
-                            <DecisionSummary decision={run.decision} />
+                            <DecisionSummary
+                                decision={run.decision as Parameters<typeof DecisionSummary>[0]["decision"]}
+                                renderActionMeta={(action) => <ActionMeta action={action as A} />}
+                            />
                         </div>
                         <div className="divider-v hidden xl:block" />
                         <TreeCanvas
@@ -222,6 +260,7 @@ export function VisualizerWorkspace({ run }: { run: RunDataset }) {
                                 setIsPlaying(false);
                                 setSelectedNodeId(nodeId);
                             }}
+                            renderNodePreview={(state, size, circular) => <NodeStatePreview state={state as S} size={size} circular={circular} />}
                         />
                         <div className="divider-v hidden xl:block" />
                         <div>
@@ -258,7 +297,7 @@ export function VisualizerWorkspace({ run }: { run: RunDataset }) {
                                 </button>
                             </section>
                             <div className="divider-h mx-5" />
-                            <TransitionDiff transition={run.transition} />
+                            <TransitionView transition={activeTransition} />
                         </div>
                     </div>
 
@@ -289,6 +328,7 @@ export function VisualizerWorkspace({ run }: { run: RunDataset }) {
                             if (phase !== "ready") return;
                             setPlaybackRate(rate);
                         }}
+                        renderFramePreview={(state) => <IterationPreview state={state as S} />}
                     />
                   </div>
                 </section>

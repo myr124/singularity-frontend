@@ -1,13 +1,20 @@
-import type { MCTSNode } from "~/lib/contracts";
+type TreeNode = {
+  nodeId: string;
+  parentId: string | null;
+};
 
-export type PositionedNode = MCTSNode & {
+export type PositionedNode<T extends TreeNode = TreeNode> = T & {
   depth: number;
   x: number;
   y: number;
 };
 
-export function buildTreeLayout(nodes: MCTSNode[], width: number, height: number): PositionedNode[] {
-  const children = new Map<string, MCTSNode[]>();
+export function buildTreeLayout<T extends TreeNode>(
+  nodes: T[],
+  width: number,
+  height: number,
+): PositionedNode<T>[] {
+  const children = new Map<string, T[]>();
 
   for (const node of nodes) {
     if (!node.parentId) continue;
@@ -22,7 +29,7 @@ export function buildTreeLayout(nodes: MCTSNode[], width: number, height: number
   const depthMap = new Map<string, number>();
   const leaves: string[] = [];
 
-  function walk(node: MCTSNode, depth: number) {
+  function walk(node: T, depth: number) {
     depthMap.set(node.nodeId, depth);
     const branch = children.get(node.nodeId) ?? [];
     if (branch.length === 0) {

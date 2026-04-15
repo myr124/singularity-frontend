@@ -1,28 +1,27 @@
-import {
-  generateBrainPoints,
-  generateSideBrainTargets,
-  type BrainNode,
-} from "./brain-shape";
+import { generateBrainPoints, type BrainNode } from "./brain-shape";
 
 export type Phase = "drift" | "converge" | "zoom";
 
 interface Particle {
+  // Current 2D position (normalized 0..1, canvas space)
   x: number;
   y: number;
   vx: number;
   vy: number;
+  // Base 3D position in brain-local space (roughly [-0.5, 0.5])
+  bx: number;
+  by: number;
+  bz: number;
+  // Per-frame projected target
   targetX: number;
   targetY: number;
-  frontX: number;
-  frontY: number;
-  sideX: number;
-  sideY: number;
+  depth: number; // 0 (far) .. 1 (near), set during projection
   swayPhase: number;
   swayAmp: number;
   size: number;
   alpha: number;
   hue: number;
-  neighbors: number[]; // Indices of connected particles
+  neighbors: number[];
 }
 
 export class ParticleSystem {
@@ -40,17 +39,25 @@ export class ParticleSystem {
   private zoomProgress = 0;
   private onZoomComplete?: () => void;
   private reducedMotion = false;
-  private autoConvergeTimer: ReturnType<typeof setTimeout> | null = null;
-  private sideBlend = 0;
   private sideViewActive = false;
+  // Camera rotation around vertical axis (radians). Auto-drifts + side view.
+  private yaw = 0;
+  private targetYaw = 0;
+  // Slight fixed tilt gives the brain perceptible depth even head-on.
+  private readonly pitch = -0.18;
   private sprites: HTMLCanvasElement[] = [];
   private readonly spriteCount = 6;
   private readonly spriteSize = 64;
   private readonly hueMin = 185;
   private readonly hueMax = 215;
+  // Perspective / projection constants
+  private readonly focal = 1.6;
+  private readonly projScale = 0.58;
 
   setSideView(active: boolean) {
     this.sideViewActive = active;
+    if (this.phase === "zoom") return;
+    this.phase = active ? "converge" : "drift";
   }
 
   constructor(canvas: HTMLCanvasElement) {
@@ -97,44 +104,32 @@ export class ParticleSystem {
 
   init(count = 2000) {
     this.brainNodes = generateBrainPoints(count);
-    const sideTargets = generateSideBrainTargets(count);
     this.dpr = globalThis.devicePixelRatio ?? 1;
 
-    this.particles = this.brainNodes.map((node, i) => {
-      const startX = Math.random();
-      const startY = Math.random();
-      const side = sideTargets[i]!;
-      return {
-        x: startX,
-        y: startY,
-        vx: (Math.random() - 0.5) * 0.002,
-        vy: (Math.random() - 0.5) * 0.002,
-        targetX: node.x,
-        targetY: node.y,
-        frontX: node.x,
-        frontY: node.y,
-        sideX: side.x,
-        sideY: side.y,
-        swayPhase: Math.random() * Math.PI * 2,
-        swayAmp: 0.6 + Math.random() * 0.8,
-        size: 1.5 + Math.random() * 2.5,
-        alpha: 0.4 + Math.random() * 0.5,
-        hue: 185 + Math.random() * 30,
-        neighbors: node.neighbors,
-      };
-    });
+    this.particles = this.brainNodes.map((node) => ({
+      x: Math.random(),
+      y: Math.random(),
+      vx: (Math.random() - 0.5) * 0.002,
+      vy: (Math.random() - 0.5) * 0.002,
+      bx: node.x,
+      by: node.y,
+      bz: node.z,
+      targetX: 0.5,
+      targetY: 0.5,
+      depth: 0.5,
+      swayPhase: Math.random() * Math.PI * 2,
+      swayAmp: 0.6 + Math.random() * 0.8,
+      size: 1.6 + Math.random() * 2.2,
+      alpha: 0.45 + Math.random() * 0.45,
+      hue: 185 + Math.random() * 30,
+      neighbors: node.neighbors,
+    }));
 
     this.handleResize();
     if (this.reducedMotion) {
       this.phase = "converge";
+      this.projectAll();
       this.snapToTargets();
-    } else {
-      // Auto-converge after 3 seconds if user hasn't interacted
-      this.autoConvergeTimer = setTimeout(() => {
-        if (this.phase === "drift") {
-          this.phase = "converge";
-        }
-      }, 3000);
     }
     this.loop();
   }
@@ -164,29 +159,13 @@ export class ParticleSystem {
     const rect = this.canvas.getBoundingClientRect();
     this.mouseX = (e.clientX - rect.left) / this.width;
     this.mouseY = (e.clientY - rect.top) / this.height;
-    if (this.phase === "drift") {
-      this.phase = "converge";
-      if (this.autoConvergeTimer) {
-        clearTimeout(this.autoConvergeTimer);
-        this.autoConvergeTimer = null;
-      }
-    }
   };
 
   handleTouchMove = (e: TouchEvent) => {
     if (e.touches.length === 0) return;
     const rect = this.canvas.getBoundingClientRect();
-    this.mouseX =
-      (e.touches[0]!.clientX - rect.left) / this.width;
-    this.mouseY =
-      (e.touches[0]!.clientY - rect.top) / this.height;
-    if (this.phase === "drift") {
-      this.phase = "converge";
-      if (this.autoConvergeTimer) {
-        clearTimeout(this.autoConvergeTimer);
-        this.autoConvergeTimer = null;
-      }
-    }
+    this.mouseX = (e.touches[0]!.clientX - rect.left) / this.width;
+    this.mouseY = (e.touches[0]!.clientY - rect.top) / this.height;
   };
 
   handleMouseLeave = () => {
@@ -210,6 +189,46 @@ export class ParticleSystem {
     this.animationId = requestAnimationFrame(this.loop);
   };
 
+  // Project a 3D brain-space point to normalized canvas coords + depth.
+  // Depth returned is in [0..1], 1 = nearest to camera.
+  private project(
+    bx: number,
+    by: number,
+    bz: number,
+    cosY: number,
+    sinY: number,
+    cosP: number,
+    sinP: number,
+  ): { x: number; y: number; depth: number } {
+    // Yaw around Y axis
+    const rx = bx * cosY + bz * sinY;
+    const rz = -bx * sinY + bz * cosY;
+    // Pitch around X axis
+    const ry = by * cosP - rz * sinP;
+    const rz2 = by * sinP + rz * cosP;
+    // Perspective: points with larger z (toward camera) appear larger
+    const f = this.focal;
+    const pScale = f / (f - rz2); // rz2 closer to f → bigger
+    const x = 0.5 + rx * pScale * this.projScale;
+    const y = 0.5 + ry * pScale * this.projScale;
+    // Normalize depth into [0..1]. rz2 roughly in [-0.5, 0.5].
+    const depth = Math.max(0, Math.min(1, 0.5 + rz2));
+    return { x, y, depth };
+  }
+
+  private projectAll() {
+    const cosY = Math.cos(this.yaw);
+    const sinY = Math.sin(this.yaw);
+    const cosP = Math.cos(this.pitch);
+    const sinP = Math.sin(this.pitch);
+    for (const p of this.particles) {
+      const proj = this.project(p.bx, p.by, p.bz, cosY, sinY, cosP, sinP);
+      p.targetX = proj.x;
+      p.targetY = proj.y;
+      p.depth = proj.depth;
+    }
+  }
+
   private update() {
     const dt = 1;
     const mouseRadius = 0.08;
@@ -226,19 +245,30 @@ export class ParticleSystem {
       }
     }
 
-    const blendTarget = this.phase !== "zoom" && this.sideViewActive ? 1 : 0;
-    this.sideBlend += (blendTarget - this.sideBlend) * 0.06;
-
+    // Smoothly drive yaw toward side-view (≈90°) or rest pose.
     const t = performance.now() * 0.001;
-    const swayStrength = (1 - this.sideBlend) * 0.012;
+    const idleYaw = Math.sin(t * 0.25) * 0.35; // gentle auto-rotation
+    this.targetYaw =
+      this.phase !== "zoom" && this.sideViewActive ? Math.PI * 0.5 : idleYaw;
+    this.yaw += (this.targetYaw - this.yaw) * 0.05;
+
+    const cosY = Math.cos(this.yaw);
+    const sinY = Math.sin(this.yaw);
+    const cosP = Math.cos(this.pitch);
+    const sinP = Math.sin(this.pitch);
+
+    const swayStrength = 0.008;
 
     for (const p of this.particles) {
-      const baseX = p.frontX + (p.sideX - p.frontX) * this.sideBlend;
-      const baseY = p.frontY + (p.sideY - p.frontY) * this.sideBlend;
+      // Project 3D base position to 2D + depth this frame
+      const proj = this.project(p.bx, p.by, p.bz, cosY, sinY, cosP, sinP);
       const sx = Math.sin(t * 0.7 + p.swayPhase) * p.swayAmp * swayStrength;
-      const sy = Math.cos(t * 0.5 + p.swayPhase * 1.3) * p.swayAmp * swayStrength;
-      p.targetX = baseX + sx;
-      p.targetY = baseY + sy;
+      const sy =
+        Math.cos(t * 0.5 + p.swayPhase * 1.3) * p.swayAmp * swayStrength;
+      p.targetX = proj.x + sx;
+      p.targetY = proj.y + sy;
+      p.depth = proj.depth;
+
       // Mouse repulsion
       const dx = p.x - this.mouseX;
       const dy = p.y - this.mouseY;
@@ -256,8 +286,7 @@ export class ParticleSystem {
 
       if (this.phase === "converge" || this.phase === "zoom") {
         const springK = this.phase === "zoom" ? 0.12 : 0.06;
-        const damping = this.phase === "zoom" ? 0.85 : 0.90;
-
+        const damping = this.phase === "zoom" ? 0.85 : 0.9;
         p.vx += (p.targetX - p.x) * springK;
         p.vy += (p.targetY - p.y) * springK;
         p.vx *= damping;
@@ -272,7 +301,6 @@ export class ParticleSystem {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
 
-      // Soft boundary
       if (p.x < 0) { p.x = 0; p.vx *= -0.5; }
       if (p.x > 1) { p.x = 1; p.vx *= -0.5; }
       if (p.y < 0) { p.y = 0; p.vy *= -0.5; }
@@ -296,26 +324,34 @@ export class ParticleSystem {
       ctx.scale(scale, scale);
     }
 
-    // Draw edges first (behind particles). Skip during zoom — barely visible and expensive.
+    // Sort particles back-to-front so front particles draw on top.
+    // Additive blending with depth-modulated alpha already gives the
+    // volumetric look; the sort just keeps the brightest highlights front.
+    const order = this.particles
+      .map((_, i) => i)
+      .sort((a, b) => this.particles[a]!.depth - this.particles[b]!.depth);
+
     if (this.phase !== "zoom") {
-      this.drawEdges();
+      this.drawEdges(order);
     }
 
-    // Draw particles on top
     ctx.globalCompositeOperation = "lighter";
 
-    const spriteSize = this.spriteSize;
-    for (const p of this.particles) {
+    for (const i of order) {
+      const p = this.particles[i]!;
       const sx = p.x * w;
       const sy = p.y * h;
-      const baseSize = p.size * (w / 1000);
-      // During zoom, ctx.scale already grows the sprite — avoid compounding it.
-      const size = baseSize;
-      const alpha = this.phase === "zoom"
-        ? Math.min(1, p.alpha + this.zoomProgress * 0.6)
-        : p.alpha;
+      // Depth shading: nearer particles are larger and brighter.
+      // Far particles fade into the background for a sense of volume.
+      const depthSize = 0.45 + p.depth * 0.95;
+      const depthAlpha = 0.3 + p.depth * 0.9;
+      const baseSize = p.size * (w / 1000) * depthSize;
+      const alpha =
+        this.phase === "zoom"
+          ? Math.min(1, p.alpha + this.zoomProgress * 0.6)
+          : p.alpha * depthAlpha;
 
-      const draw = size * 2;
+      const draw = baseSize * 2;
       ctx.globalAlpha = alpha;
       ctx.drawImage(
         this.pickSprite(p.hue),
@@ -330,45 +366,36 @@ export class ParticleSystem {
 
     if (this.phase === "zoom") {
       ctx.restore();
-
-      // White flash overlay
       const flashAlpha = Math.max(0, (this.zoomProgress - 0.6) / 0.4);
       ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
       ctx.fillRect(0, 0, w, h);
     }
   }
 
-  private drawEdges() {
+  private drawEdges(order: number[]) {
     const ctx = this.ctx;
     const w = this.width;
     const h = this.height;
-    
-    // Edge opacity varies by phase:
-    // - drift: visible network
-    // - converge: fading out as particles lock into position
-    // - zoom: minimal edges
+
     let baseEdgeAlpha: number;
-    if (this.phase === "drift") {
-      baseEdgeAlpha = 0.14;
-    } else if (this.phase === "converge") {
-      baseEdgeAlpha = 0.10;
-    } else {
-      baseEdgeAlpha = 0.03;
-    }
+    if (this.phase === "drift") baseEdgeAlpha = 0.14;
+    else if (this.phase === "converge") baseEdgeAlpha = 0.1;
+    else baseEdgeAlpha = 0.03;
 
     ctx.lineWidth = 0.6;
     const maxEdgeDist = this.phase === "drift" ? 0.18 : 0.12;
 
-    // Batch edges into a few alpha buckets to minimize strokeStyle changes.
     const buckets = 4;
     const bucketPaths: Path2D[] = [];
     for (let b = 0; b < buckets; b++) bucketPaths.push(new Path2D());
 
+    // Iterate in any order for edge drawing (render order only matters for fill).
+    void order;
     for (let i = 0; i < this.particles.length; i++) {
       const p1 = this.particles[i]!;
-      for (const neighborIdx of p1.neighbors) {
-        if (neighborIdx <= i) continue; // draw each edge once
-        const p2 = this.particles[neighborIdx]!;
+      for (const j of p1.neighbors) {
+        if (j <= i) continue;
+        const p2 = this.particles[j]!;
         const dx = p1.x - p2.x;
         const dy = p1.y - p2.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -376,7 +403,10 @@ export class ParticleSystem {
 
         const distAlpha = 1 - dist / maxEdgeDist;
         if (distAlpha < 0.1) continue;
-        const b = Math.min(buckets - 1, Math.floor(distAlpha * buckets));
+        // Fold the pair's depth into the bucket so far edges fade.
+        const depthAvg = (p1.depth + p2.depth) * 0.5;
+        const combined = distAlpha * (0.35 + depthAvg * 0.9);
+        const b = Math.min(buckets - 1, Math.floor(combined * buckets));
         const path = bucketPaths[b]!;
         path.moveTo(p1.x * w, p1.y * h);
         path.lineTo(p2.x * w, p2.y * h);
@@ -394,8 +424,5 @@ export class ParticleSystem {
 
   destroy() {
     cancelAnimationFrame(this.animationId);
-    if (this.autoConvergeTimer) {
-      clearTimeout(this.autoConvergeTimer);
-    }
   }
 }

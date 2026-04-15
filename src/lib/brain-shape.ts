@@ -3,181 +3,155 @@ export interface Point {
   y: number;
 }
 
-interface BrainRegion {
+export interface Point3D {
+  x: number;
+  y: number;
+  z: number;
+}
+
+interface Region3D {
   cx: number;
   cy: number;
+  cz: number;
   rx: number;
   ry: number;
+  rz: number;
   weight: number;
+  // If true, bias samples toward the shell (cortex-like surface)
+  shell: boolean;
 }
 
-function createSideBrainRegions(): BrainRegion[] {
-  // Left-facing profile view of a brain
+// Coordinates are roughly in [-0.5, 0.5] (y+ = down to match canvas space).
+// The envelope below approximates a human brain: two hemispheres, frontal
+// and occipital bulges, temporal lobes, cerebellum, and brain stem.
+function createBrainRegions(): Region3D[] {
   return [
-    // Frontal lobe (front bulge, left side)
-    { cx: 0.22, cy: 0.38, rx: 0.10, ry: 0.12, weight: 1.0 },
-    // Upper cerebrum arc - front
-    { cx: 0.35, cy: 0.28, rx: 0.10, ry: 0.10, weight: 0.95 },
-    // Upper cerebrum arc - middle
-    { cx: 0.50, cy: 0.25, rx: 0.12, ry: 0.09, weight: 1.0 },
-    // Upper cerebrum arc - back
-    { cx: 0.65, cy: 0.30, rx: 0.10, ry: 0.10, weight: 0.95 },
-    // Parietal lobe (top-back)
-    { cx: 0.62, cy: 0.40, rx: 0.10, ry: 0.10, weight: 0.9 },
-    // Occipital lobe (back bulge, right side)
-    { cx: 0.78, cy: 0.45, rx: 0.08, ry: 0.10, weight: 0.9 },
-    // Temporal lobe (bottom-middle)
-    { cx: 0.42, cy: 0.52, rx: 0.12, ry: 0.08, weight: 0.85 },
-    // Deep center mass
-    { cx: 0.50, cy: 0.42, rx: 0.14, ry: 0.10, weight: 0.8 },
-    // Cerebellum (back-lower, layered)
-    { cx: 0.73, cy: 0.62, rx: 0.08, ry: 0.08, weight: 0.85 },
-    // Brain stem
-    { cx: 0.60, cy: 0.75, rx: 0.04, ry: 0.08, weight: 0.6 },
-    // Lower frontal hook
-    { cx: 0.28, cy: 0.50, rx: 0.07, ry: 0.07, weight: 0.7 },
+    // Left & right cerebral hemispheres (the main mass)
+    { cx: -0.17, cy: -0.06, cz:  0.02, rx: 0.22, ry: 0.26, rz: 0.32, weight: 1.0, shell: true },
+    { cx:  0.17, cy: -0.06, cz:  0.02, rx: 0.22, ry: 0.26, rz: 0.32, weight: 1.0, shell: true },
+
+    // Frontal lobe bulges (front, rounded)
+    { cx: -0.13, cy: -0.10, cz:  0.30, rx: 0.14, ry: 0.17, rz: 0.12, weight: 0.55, shell: true },
+    { cx:  0.13, cy: -0.10, cz:  0.30, rx: 0.14, ry: 0.17, rz: 0.12, weight: 0.55, shell: true },
+
+    // Occipital lobes (back bulge)
+    { cx: -0.11, cy: -0.02, cz: -0.30, rx: 0.13, ry: 0.17, rz: 0.11, weight: 0.45, shell: true },
+    { cx:  0.11, cy: -0.02, cz: -0.30, rx: 0.13, ry: 0.17, rz: 0.11, weight: 0.45, shell: true },
+
+    // Temporal lobes (sides, lower)
+    { cx: -0.28, cy:  0.10, cz:  0.02, rx: 0.10, ry: 0.12, rz: 0.24, weight: 0.55, shell: true },
+    { cx:  0.28, cy:  0.10, cz:  0.02, rx: 0.10, ry: 0.12, rz: 0.24, weight: 0.55, shell: true },
+
+    // Cerebellum (back-lower, two lobes)
+    { cx: -0.09, cy:  0.28, cz: -0.20, rx: 0.12, ry: 0.10, rz: 0.13, weight: 0.45, shell: true },
+    { cx:  0.09, cy:  0.28, cz: -0.20, rx: 0.12, ry: 0.10, rz: 0.13, weight: 0.45, shell: true },
+
+    // Brain stem (solid, thin column)
+    { cx:  0.00, cy:  0.36, cz: -0.06, rx: 0.05, ry: 0.11, rz: 0.05, weight: 0.15, shell: false },
   ];
 }
 
-function createBrainRegions(): BrainRegion[] {
-  // More detailed brain shape with multiple overlapping regions
-  return [
-    // Left hemisphere - upper
-    { cx: 0.32, cy: 0.35, rx: 0.16, ry: 0.18, weight: 1.0 },
-    // Left hemisphere - lower
-    { cx: 0.30, cy: 0.52, rx: 0.14, ry: 0.16, weight: 0.9 },
-    // Right hemisphere - upper
-    { cx: 0.68, cy: 0.35, rx: 0.16, ry: 0.18, weight: 1.0 },
-    // Right hemisphere - lower
-    { cx: 0.70, cy: 0.52, rx: 0.14, ry: 0.16, weight: 0.9 },
-    // Center bridge (corpus callosum area)
-    { cx: 0.50, cy: 0.38, rx: 0.08, ry: 0.12, weight: 0.7 },
-    // Cerebellum - left lobe
-    { cx: 0.42, cy: 0.75, rx: 0.10, ry: 0.10, weight: 0.8 },
-    // Cerebellum - right lobe
-    { cx: 0.58, cy: 0.75, rx: 0.10, ry: 0.10, weight: 0.8 },
-    // Brain stem
-    { cx: 0.50, cy: 0.88, rx: 0.06, ry: 0.08, weight: 0.6 },
-    // Temporal lobe - left
-    { cx: 0.25, cy: 0.60, rx: 0.10, ry: 0.12, weight: 0.7 },
-    // Temporal lobe - right
-    { cx: 0.75, cy: 0.60, rx: 0.10, ry: 0.12, weight: 0.7 },
-    // Frontal lobe bulge - left
-    { cx: 0.35, cy: 0.22, rx: 0.10, ry: 0.10, weight: 0.8 },
-    // Frontal lobe bulge - right
-    { cx: 0.65, cy: 0.22, rx: 0.10, ry: 0.10, weight: 0.8 },
-  ];
-}
+function sampleInRegion(r: Region3D): Point3D {
+  // Random direction on unit sphere
+  const u = Math.random() * 2 - 1;
+  const theta = Math.random() * Math.PI * 2;
+  const s = Math.sqrt(1 - u * u);
+  const dx = s * Math.cos(theta);
+  const dy = u;
+  const dz = s * Math.sin(theta);
 
-function isInsideRegion(px: number, py: number, region: BrainRegion): boolean {
-  const dx = (px - region.cx) / region.rx;
-  const dy = (py - region.cy) / region.ry;
-  return dx * dx + dy * dy <= 1.0;
-}
-
-function samplePointInBrain(regions: BrainRegion[]): Point | null {
-  // Weighted sampling
-  const totalWeight = regions.reduce((sum, r) => sum + r.weight, 0);
-  const rand = Math.random() * totalWeight;
-  let cumulative = 0;
-  
-  for (const region of regions) {
-    cumulative += region.weight;
-    if (rand <= cumulative) {
-      // Sample within this region using rejection sampling for uniform distribution
-      let attempts = 0;
-      while (attempts < 20) {
-        const x = region.cx + (Math.random() * 2 - 1) * region.rx;
-        const y = region.cy + (Math.random() * 2 - 1) * region.ry;
-        if (isInsideRegion(x, y, region)) {
-          return { x, y };
-        }
-        attempts++;
-      }
-      // Fallback to center if rejection sampling fails
-      return { x: region.cx, y: region.cy };
-    }
+  // Radius: shell=true biases toward surface (thin cortex);
+  // shell=false fills the volume uniformly (cube-root for uniformity).
+  let rad: number;
+  if (r.shell) {
+    // Mostly in outer 30% of radius, with a little interior scatter
+    rad = 0.7 + Math.random() * 0.3;
+    if (Math.random() < 0.15) rad = 0.3 + Math.random() * 0.4;
+  } else {
+    rad = Math.cbrt(Math.random());
   }
-  
-  return null;
+
+  return {
+    x: r.cx + dx * r.rx * rad,
+    y: r.cy + dy * r.ry * rad,
+    z: r.cz + dz * r.rz * rad,
+  };
 }
 
-export interface BrainNode extends Point {
+function samplePoint(regions: Region3D[]): Point3D {
+  const totalWeight = regions.reduce((s, r) => s + r.weight, 0);
+  let rand = Math.random() * totalWeight;
+  for (const r of regions) {
+    rand -= r.weight;
+    if (rand <= 0) return sampleInRegion(r);
+  }
+  return sampleInRegion(regions[0]!);
+}
+
+export interface BrainNode extends Point3D {
   id: number;
-  neighbors: number[]; // IDs (indices) of connected nodes
-}
-
-export function generateSideBrainTargets(count: number): Point[] {
-  const regions = createSideBrainRegions();
-  const points: Point[] = [];
-  for (let i = 0; i < count; i++) {
-    const p = samplePointInBrain(regions) ?? {
-      x: 0.2 + Math.random() * 0.6,
-      y: 0.2 + Math.random() * 0.6,
-    };
-    points.push(p);
-  }
-  return points;
+  neighbors: number[];
 }
 
 export function generateBrainPoints(count: number): BrainNode[] {
   const regions = createBrainRegions();
   const points: BrainNode[] = [];
-  
-  // Generate points with shuffled region order for variety
-  const shuffledRegions = [...regions].sort(() => Math.random() - 0.5);
-  
+
   for (let i = 0; i < count; i++) {
-    let point: Point | null = null;
-    
-    // Try weighted sampling first
-    point = samplePointInBrain(shuffledRegions);
-    
-    if (!point) {
-      // Fallback: random position
-      point = {
-        x: 0.2 + Math.random() * 0.6,
-        y: 0.15 + Math.random() * 0.75,
-      };
-    }
-    
-    points.push({
-      x: point.x,
-      y: point.y,
-      id: i,
-      neighbors: [],
-    });
+    const p = samplePoint(regions);
+    points.push({ x: p.x, y: p.y, z: p.z, id: i, neighbors: [] });
   }
-  
-  // Connect to nearest neighbors (2-3 connections each)
+
+  // 3D nearest-neighbor connections. Uniform grid accelerates O(n²) → ~O(n).
+  const cell = 0.06;
+  const grid = new Map<string, number[]>();
+  const key = (ix: number, iy: number, iz: number) => `${ix},${iy},${iz}`;
+  const idx = (v: number) => Math.floor(v / cell);
+
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i]!;
+    const k = key(idx(p.x), idx(p.y), idx(p.z));
+    const bucket = grid.get(k);
+    if (bucket) bucket.push(i);
+    else grid.set(k, [i]);
+  }
+
   const maxNeighbors = 3;
-  const connectionRadius = 0.10; // Max distance for connection (normalized coords)
-  
+  const radius = 0.07;
+  const r2 = radius * radius;
+
   for (let i = 0; i < points.length; i++) {
     const p1 = points[i]!;
-    const distances: { id: number; dist: number }[] = [];
-    
-    for (let j = i + 1; j < points.length; j++) {
-      const p2 = points[j]!;
-      const dx = p1.x - p2.x;
-      const dy = p1.y - p2.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      
-      if (dist < connectionRadius) {
-        distances.push({ id: j, dist });
+    const ix = idx(p1.x);
+    const iy = idx(p1.y);
+    const iz = idx(p1.z);
+    const candidates: { id: number; d2: number }[] = [];
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dz = -1; dz <= 1; dz++) {
+          const bucket = grid.get(key(ix + dx, iy + dy, iz + dz));
+          if (!bucket) continue;
+          for (const j of bucket) {
+            if (j <= i) continue;
+            const p2 = points[j]!;
+            const ex = p1.x - p2.x;
+            const ey = p1.y - p2.y;
+            const ez = p1.z - p2.z;
+            const d2 = ex * ex + ey * ey + ez * ez;
+            if (d2 < r2) candidates.push({ id: j, d2 });
+          }
+        }
       }
     }
-    
-    // Sort by distance and pick closest
-    distances.sort((a, b) => a.dist - b.dist);
-    const neighborCount = Math.min(maxNeighbors, distances.length);
-    
-    for (let k = 0; k < neighborCount; k++) {
-      const neighborId = distances[k]!.id;
-      p1.neighbors.push(neighborId);
-      points[neighborId]!.neighbors.push(i);
+    candidates.sort((a, b) => a.d2 - b.d2);
+    const n = Math.min(maxNeighbors, candidates.length);
+    for (let k = 0; k < n; k++) {
+      const j = candidates[k]!.id;
+      if (p1.neighbors.length < maxNeighbors) p1.neighbors.push(j);
+      const p2 = points[j]!;
+      if (p2.neighbors.length < maxNeighbors + 1) p2.neighbors.push(i);
     }
   }
-  
+
   return points;
 }

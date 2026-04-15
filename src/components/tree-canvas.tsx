@@ -1,71 +1,36 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 
-import type { EnvState, MCTSNode } from "~/lib/contracts";
-import { buildTreeLayout } from "~/lib/tree-layout";
+import type { MCTSNode } from "~/lib/mcts/types";
+import { buildTreeLayout, type PositionedNode } from "~/lib/tree-layout";
 
 const WIDTH = 960;
 const HEIGHT = 640;
-const PREVIEW_PALETTE = ["#071321", "#184b63", "#1c91a7", "#36d4ff", "#6df0ff", "#2677ff", "#cfe8ff", "#f4ff7a"];
 
-function MiniStatePreview({
-    state,
-    size,
-    circular = false,
-}: {
-    state: EnvState;
-    size: number;
-    circular?: boolean;
-}) {
-    return (
-        <div
-            className={circular ? "overflow-hidden rounded-full" : "overflow-hidden rounded-[18px]"}
-            style={{
-                width: size,
-                height: size,
-                boxShadow: "inset 0 0 0 1px rgba(115,240,255,0.18), 0 0 18px rgba(115,240,255,0.12)",
-            }}
-        >
-            <div
-                className="grid h-full w-full"
-                style={{
-                    gridTemplateColumns: `repeat(${state.frame.length}, minmax(0, 1fr))`,
-                }}
-            >
-                {state.frame.flatMap((row, rowIndex) =>
-                    row.map((cell, columnIndex) => (
-                        <div
-                            key={`${rowIndex}-${columnIndex}`}
-                            style={{
-                                backgroundColor: PREVIEW_PALETTE[cell] ?? PREVIEW_PALETTE[0],
-                            }}
-                        />
-                    )),
-                )}
-            </div>
-        </div>
-    );
-}
-
-type TreeCanvasProps = {
-    nodes: MCTSNode[];
-    selectedPath: string[];
-    selectedNodeId: string;
-    visibleNodeIds?: string[];
-    isGenerating?: boolean;
-    onSelectNode: (nodeId: string) => void;
+type TreeCanvasProps<S, A extends { action: string }> = {
+  nodes: MCTSNode<S, A>[];
+  selectedPath: string[];
+  selectedNodeId: string;
+  visibleNodeIds?: string[];
+  isGenerating?: boolean;
+  onSelectNode: (nodeId: string) => void;
+  renderNodePreview: (state: S, size: number, circular?: boolean) => ReactNode;
+  renderNodeDetail?: (node: PositionedNode<MCTSNode<S, A>>) => ReactNode;
 };
 
-export function TreeCanvas({
-    nodes,
-    selectedPath,
-    selectedNodeId,
-    visibleNodeIds,
-    isGenerating = false,
-    onSelectNode,
-}: TreeCanvasProps) {
+export function TreeCanvas<S, A extends { action: string }>({
+  nodes,
+  selectedPath,
+  selectedNodeId,
+  visibleNodeIds,
+  isGenerating = false,
+  onSelectNode,
+  renderNodePreview,
+  renderNodeDetail,
+}: TreeCanvasProps<S, A>) {
     const layout = useMemo(() => buildTreeLayout(nodes, WIDTH, HEIGHT), [nodes]);
     const visibleLayout = useMemo(() => {
         const set = new Set(visibleNodeIds ?? layout.map((n) => n.nodeId));
@@ -172,11 +137,7 @@ export function TreeCanvas({
                                     height={(nodeRadius - 2) * 2}
                                     style={{ pointerEvents: "none" }}
                                 >
-                                    <MiniStatePreview
-                                        state={node.state}
-                                        size={(nodeRadius - 2) * 2}
-                                        circular
-                                    />
+                                    {renderNodePreview(node.state as S, (nodeRadius - 2) * 2, true)}
                                 </foreignObject>
                             ) : (
                                 <circle
@@ -219,11 +180,15 @@ export function TreeCanvas({
                             <p className="text-[10px] uppercase tracking-[0.28em] text-cyan-100/48">State Preview</p>
                             <p className="mt-1 font-mono text-xs text-white/84">{selectedNode.nodeId}</p>
                             <div className="mt-3">
-                                <MiniStatePreview state={selectedNode.state} size={122} />
+                                {renderNodePreview(selectedNode.state as S, 122)}
                             </div>
-                            <p className="mt-3 text-[11px] text-cyan-50/68">
-                                {selectedNode.action?.action ?? "ROOT"} · score {selectedNode.state.score.toFixed(2)}
-                            </p>
+                            {renderNodeDetail ? (
+                                renderNodeDetail(selectedNode as PositionedNode<MCTSNode<S, A>>)
+                            ) : (
+                                <p className="mt-3 text-[11px] text-cyan-50/68">
+                                    {selectedNode.action?.action ?? "ROOT"} · score {((selectedNode.state as S & { score: number })).score.toFixed(2)}
+                                </p>
+                            )}
                         </motion.div>
                     </div>
                 );

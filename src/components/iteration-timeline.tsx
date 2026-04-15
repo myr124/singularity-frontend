@@ -1,24 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { Pause, Play, RotateCcw } from "lucide-react";
-import Image from "next/image";
 
-import type { EnvState, MCTSIteration } from "~/lib/contracts";
+import type { IterationFrame, MCTSIteration } from "~/lib/mcts/types";
 import { cn } from "~/lib/utils";
 
-const palette = ["#071321", "#184b63", "#1c91a7", "#36d4ff", "#6df0ff", "#2677ff", "#cfe8ff", "#f4ff7a"];
-
-type IterationFrame = {
-  iterationIndex: number;
-  nodeId: string;
-  state: EnvState;
-};
-
-type IterationTimelineProps = {
-  iterations: MCTSIteration[];
-  frames: IterationFrame[];
+type IterationTimelineProps<S> = {
+  iterations: MCTSIteration<unknown>[];
+  frames: IterationFrame<S>[];
   selectedIteration: number;
   isPlaying: boolean;
   playbackRate: number;
@@ -26,21 +17,10 @@ type IterationTimelineProps = {
   onTogglePlayback: () => void;
   onReset: () => void;
   onPlaybackRateChange: (rate: number) => void;
+  renderFramePreview: (state: S) => ReactNode;
 };
 
-function buildFramePreview(frame: EnvState["frame"]) {
-  const cells = frame.flatMap((row, rowIndex) =>
-    row.map((cell, columnIndex) => {
-      const color = palette[cell] ?? palette[0];
-      return `<rect x="${columnIndex}" y="${rowIndex}" width="1" height="1" fill="${color}" />`;
-    }),
-  );
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${frame.length} ${frame.length}" shape-rendering="crispEdges">${cells.join("")}</svg>`;
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
-
-export function IterationTimeline({
+export function IterationTimeline<S>({
   iterations,
   frames,
   selectedIteration,
@@ -50,23 +30,14 @@ export function IterationTimeline({
   onTogglePlayback,
   onReset,
   onPlaybackRateChange,
-}: IterationTimelineProps) {
+  renderFramePreview,
+}: IterationTimelineProps<S>) {
   const progress =
     iterations.length > 1
       ? ((selectedIteration - 1) / (iterations.length - 1)) * 100
       : 100;
   const minIteration = iterations[0]?.iterationIndex ?? 1;
   const maxIteration = iterations[iterations.length - 1]?.iterationIndex ?? 1;
-  const framePreviewMap = useMemo(
-    () =>
-      new Map(
-        frames.map((frame) => [
-          frame.iterationIndex,
-          buildFramePreview(frame.state.frame),
-        ]),
-      ),
-    [frames],
-  );
 
   return (
     <section className="subpanel rounded-[28px] p-5">
@@ -146,7 +117,6 @@ export function IterationTimeline({
         {iterations.map((iteration) => {
           const active = iteration.iterationIndex === selectedIteration;
           const frame = frames.find((item) => item.iterationIndex === iteration.iterationIndex);
-          const previewSrc = framePreviewMap.get(iteration.iterationIndex);
           return (
             <button
               key={iteration.iterationIndex}
@@ -165,16 +135,9 @@ export function IterationTimeline({
                   className="absolute inset-0 rounded-[22px] border border-cyan-200/30 shadow-[0_0_24px_rgba(115,240,255,0.18)]"
                 />
               ) : null}
-              {frame && previewSrc ? (
-                <div className="aspect-video overflow-hidden rounded-[16px] border border-cyan-300/14 bg-[#030b13]">
-                  <Image
-                    src={previewSrc}
-                    alt={`Iteration ${frame.iterationIndex} state preview`}
-                    width={256}
-                    height={144}
-                    unoptimized
-                    className="h-full w-full object-cover [image-rendering:pixelated]"
-                  />
+              {frame ? (
+                <div className="mb-2">
+                  {renderFramePreview(frame.state)}
                 </div>
               ) : null}
               <p className="text-xs uppercase tracking-[0.28em] text-cyan-100/55">Iteration {iteration.iterationIndex}</p>

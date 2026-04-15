@@ -1,6 +1,21 @@
-import type { MCTSDecision } from "~/lib/contracts";
+import type { ReactNode } from "react";
 
-export function DecisionSummary({ decision }: { decision: MCTSDecision }) {
+import type { ChildStats } from "~/lib/mcts/types";
+
+type DecisionSummaryProps<A> = {
+  decision: {
+    rootState: unknown;
+    candidates: A[];
+    childrenStats: ChildStats<A>[];
+    bestAction: A;
+  };
+  renderActionMeta?: (action: A) => ReactNode;
+};
+
+export function DecisionSummary<A extends { action: string; rationale: string | null }>({
+  decision,
+  renderActionMeta,
+}: DecisionSummaryProps<A>) {
   return (
     <section className="subpanel rounded-[28px] p-5">
       <div className="flex items-center justify-between">
@@ -16,13 +31,16 @@ export function DecisionSummary({ decision }: { decision: MCTSDecision }) {
       <div className="mt-5 space-y-3">
         {decision.childrenStats.map((candidate) => (
           <div
-            key={`${candidate.action.action}-${candidate.action.x ?? "n"}-${candidate.action.y ?? "n"}`}
+            key={candidate.action.action}
             className="rounded-[22px] border border-cyan-300/14 bg-white/[0.03] p-3"
           >
             <div className="flex items-center justify-between text-sm text-white">
               <span>{candidate.action.action}</span>
               <span className="font-mono text-cyan-100/70">{candidate.value.toFixed(2)}</span>
             </div>
+            {renderActionMeta ? (
+              <p className="mt-1 text-xs text-cyan-100/50">{renderActionMeta(candidate.action)}</p>
+            ) : null}
             <div className="mt-2 h-2 rounded-full bg-cyan-100/8">
               <div
                 className="h-2 rounded-full bg-[linear-gradient(90deg,#4be1ff,#2b7fff)]"
