@@ -18,17 +18,23 @@ export const mctsNodeSchema = z.object({
   nodeId: z.string(),
   parentId: z.string().nullable(),
   action: actionCandidateSchema.nullable(),
+  actionSequence: z.array(actionCandidateSchema),
   visits: z.number().int(),
   totalValue: z.number(),
   meanValue: z.number(),
   isTerminal: z.boolean(),
+  depth: z.number().int(),
   state: envStateSchema,
+  childrenIds: z.array(z.string()),
+  candidateActions: z.array(actionCandidateSchema),
+  candidateScores: z.array(z.number()),
+  expandedActionKeys: z.array(z.string()),
 });
 
 export const mctsIterationSchema = z.object({
   iterationIndex: z.number().int(),
   selectedPath: z.array(z.string()),
-  expandedNodeId: z.string(),
+  expandedNodeId: z.string().nullable(),
   candidateActions: z.array(actionCandidateSchema),
   simulationResultValue: z.number(),
   backpropUpdates: z.array(
@@ -51,6 +57,10 @@ export const mctsDecisionSchema = z.object({
     }),
   ),
   bestAction: actionCandidateSchema,
+  rootNodeId: z.string().nullable().optional(),
+  bestChildNodeId: z.string().nullable().optional(),
+  nodeRegistry: z.record(z.string(), mctsNodeSchema).optional(),
+  iterationLogs: z.array(mctsIterationSchema).optional(),
 });
 
 export const stepResultSchema = z.object({

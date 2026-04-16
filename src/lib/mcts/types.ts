@@ -4,11 +4,17 @@ export interface MCTSNode<S, A> {
   nodeId: string;
   parentId: string | null;
   action: A | null;
+  actionSequence: A[];
   visits: number;
   totalValue: number;
   meanValue: number;
   isTerminal: boolean;
+  depth: number;
   state: S;
+  childrenIds: string[];
+  candidateActions: A[];
+  candidateScores: number[];
+  expandedActionKeys: string[];
 }
 
 export interface BackpropUpdate {
@@ -20,7 +26,7 @@ export interface BackpropUpdate {
 export interface MCTSIteration<A> {
   iterationIndex: number;
   selectedPath: string[];
-  expandedNodeId: string;
+  expandedNodeId: string | null;
   candidateActions: A[];
   simulationResultValue: number;
   backpropUpdates: BackpropUpdate[];
@@ -37,6 +43,10 @@ export interface MCTSDecision<S, A> {
   candidates: A[];
   childrenStats: ChildStats<A>[];
   bestAction: A;
+  rootNodeId?: string | null;
+  bestChildNodeId?: string | null;
+  nodeRegistry?: Record<string, MCTSNode<S, A>>;
+  iterationLogs?: MCTSIteration<A>[];
 }
 
 export interface StepResult<S, A> {
@@ -59,7 +69,7 @@ export interface RunDataset<S, A> {
 
 export interface IterationFrame<S> {
   iterationIndex: number;
-  nodeId: string;
+  nodeId: string | null;
   state: S;
 }
 

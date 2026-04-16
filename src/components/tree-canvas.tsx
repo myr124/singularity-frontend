@@ -148,7 +148,7 @@ export function TreeCanvas<S, A extends { action: string }>({
                                 />
                             )}
                             <text x={node.x} y={node.y - 30} textAnchor="middle" className="fill-cyan-50/80 text-[11px] tracking-[0.24em]">
-                                {node.nodeId}
+                                {node.nodeId.slice(0, 8)}
                             </text>
                             <text x={node.x} y={node.y + 38} textAnchor="middle" className="fill-cyan-100/55 text-[10px]">
                                 {node.action?.action ?? "ROOT"} · {node.meanValue.toFixed(2)}
@@ -178,7 +178,7 @@ export function TreeCanvas<S, A extends { action: string }>({
                             }}
                         >
                             <p className="text-[10px] uppercase tracking-[0.28em] text-cyan-100/48">State Preview</p>
-                            <p className="mt-1 font-mono text-xs text-white/84">{selectedNode.nodeId}</p>
+                            <p className="mt-1 font-mono text-xs text-white/84">{selectedNode.nodeId.slice(0, 8)}</p>
                             <div className="mt-3">
                                 {renderNodePreview(selectedNode.state as S, 122)}
                             </div>

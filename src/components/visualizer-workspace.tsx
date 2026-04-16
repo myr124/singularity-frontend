@@ -112,7 +112,7 @@ export function VisualizerWorkspace<S, A extends { action: string; rationale: st
         startTransition(() => {
             setSelectedIteration(iterationIndex);
             const iteration = run.iterations.find((item) => item.iterationIndex === iterationIndex);
-            if (iteration) setSelectedNodeId(iteration.expandedNodeId);
+            if (iteration && iteration.expandedNodeId) setSelectedNodeId(iteration.expandedNodeId);
         });
     }, [run.iterations]);
 
@@ -272,14 +272,14 @@ export function VisualizerWorkspace<S, A extends { action: string; rationale: st
                                 <p className="mt-3 text-sm leading-6 text-cyan-50/78">
                                     Replaying path{" "}
                                     <span className="font-mono text-cyan-200">
-                                        {activePath.join(" → ")}
+                                        {activePath.map((id) => id.slice(0, 8)).join(" → ")}
                                     </span>
                                 </p>
                                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                                     <div className="rounded-[22px] border border-cyan-300/14 bg-white/[0.03] p-3">
                                         <p className="text-xs uppercase tracking-[0.22em] text-cyan-100/45">Expanded</p>
                                         <p className="mt-2 font-mono text-sm text-white">
-                                            {activeExpandedNode}
+                                            {activeExpandedNode.slice(0, 8)}
                                         </p>
                                     </div>
                                     <div className="rounded-[22px] border border-cyan-300/14 bg-white/[0.03] p-3">

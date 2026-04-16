@@ -2,10 +2,6 @@ import type { MCTSNode, MCTSIteration, RunDataset } from "~/lib/mcts/types";
 
 import type { ActionCandidate, EnvState } from "./contracts";
 
-// Step 4: Build mock data for your task.
-// This is where you create the MCTS tree data that the visualizer will render.
-// Replace the placeholder data with your task's realistic data.
-
 const rootState: EnvState = {
   score: 0.0,
   stepIndex: 0,
@@ -30,41 +26,65 @@ const nodes: MCTSNode<EnvState, ActionCandidate>[] = [
     nodeId: "root",
     parentId: null,
     action: null,
+    actionSequence: [],
     visits: 10,
     totalValue: 4.5,
     meanValue: 0.45,
     isTerminal: false,
+    depth: 0,
     state: rootState,
+    childrenIds: ["root-0", "root-1", "root-2"],
+    candidateActions: actions,
+    candidateScores: [0.35, 0.52, 0.28],
+    expandedActionKeys: actions.map((a, i) => `${a.action}-${i}`),
   },
   {
     nodeId: "root-0",
     parentId: "root",
     action: actions[0]!,
+    actionSequence: [actions[0]!],
     visits: 4,
     totalValue: 1.4,
     meanValue: 0.35,
     isTerminal: false,
+    depth: 1,
     state: childStates[0]!,
+    childrenIds: [],
+    candidateActions: [],
+    candidateScores: [],
+    expandedActionKeys: [],
   },
   {
     nodeId: "root-1",
     parentId: "root",
     action: actions[1]!,
+    actionSequence: [actions[1]!],
     visits: 4,
     totalValue: 2.08,
     meanValue: 0.52,
     isTerminal: false,
+    depth: 1,
     state: childStates[1]!,
+    childrenIds: [],
+    candidateActions: [],
+    candidateScores: [],
+    expandedActionKeys: [],
   },
   {
     nodeId: "root-2",
     parentId: "root",
     action: actions[2]!,
+    actionSequence: [actions[2]!],
     visits: 2,
     totalValue: 0.56,
     meanValue: 0.28,
     isTerminal: false,
+    depth: 1,
     state: childStates[2]!,
+    childrenIds: [],
+    candidateActions: [],
+    candidateScores: [],
+    expandedActionKeys: [],
   },
 ];
 
@@ -121,6 +141,8 @@ export function getMockRun(): RunDataset<EnvState, ActionCandidate> {
         value: nodes[index + 1]?.meanValue ?? 0,
       })),
       bestAction: actions[1]!,
+      rootNodeId: "root",
+      bestChildNodeId: "root-1",
     },
     transition: {
       actionTaken: actions[1]!,

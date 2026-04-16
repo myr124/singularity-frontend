@@ -88,116 +88,211 @@ const deepStates: Record<string, EnvState> = {
   "root-1-a-1-1": makeState({ board: deep1a2Board, score: 0.78, stepIndex: 4, cursor: [4, 3] }),
 };
 
-const nodes = [
+type NodeData = {
+  nodeId: string;
+  parentId: string | null;
+  action: ActionCandidate | null;
+  actionSequence: ActionCandidate[];
+  visits: number;
+  totalValue: number;
+  meanValue: number;
+  isTerminal: boolean;
+  depth: number;
+  state: EnvState;
+  childrenIds: string[];
+  candidateActions: ActionCandidate[];
+  candidateScores: number[];
+  expandedActionKeys: string[];
+};
+
+const nodes: NodeData[] = [
   {
     nodeId: "root",
     parentId: null,
     action: null,
+    actionSequence: [],
     visits: 38,
     totalValue: 13.0,
     meanValue: 0.34,
     isTerminal: false,
+    depth: 0,
     state: rootState,
+    childrenIds: actions.map((_, i) => `root-${i}`),
+    candidateActions: actions,
+    candidateScores: [0.28, 0.50, 0.27, 0.20],
+    expandedActionKeys: actions.map((a, i) => `${a.action}-${i}`),
   },
   ...actions.map((action, index) => ({
     nodeId: `root-${index}`,
     parentId: "root",
     action,
+    actionSequence: [action],
     visits: [9, 14, 8, 7][index]!,
     totalValue: [2.52, 7.0, 2.16, 1.4][index]!,
     meanValue: [0.28, 0.50, 0.27, 0.20][index]!,
     isTerminal: false,
+    depth: 1,
     state: childStates[index]!,
+    childrenIds: [] as string[],
+    candidateActions: [] as ActionCandidate[],
+    candidateScores: [] as number[],
+    expandedActionKeys: [] as string[],
   })),
   {
     nodeId: "root-1-a",
     parentId: "root-1",
     action: { action: "PLACE_R", letter: "R", position: [0, 3] as [number, number], rationale: "Extending the top row — completes S-T-O-R corridor." },
+    actionSequence: [actions[1]!, { action: "PLACE_R", letter: "R", position: [0, 3] as [number, number], rationale: "Extending top row." }],
     visits: 7,
     totalValue: 4.2,
     meanValue: 0.60,
     isTerminal: false,
+    depth: 2,
     state: deepStates["root-1-a"]!,
+    childrenIds: ["root-1-a-1", "root-1-a-2"],
+    candidateActions: [
+      { action: "PLACE_C", letter: "C", position: [2, 2] as [number, number], rationale: "Intersection point." },
+      { action: "PLACE_L", letter: "L", position: [2, 3] as [number, number], rationale: "Extends second-row word." },
+    ],
+    candidateScores: [0.68, 0.53],
+    expandedActionKeys: ["PLACE_C-0", "PLACE_L-1"],
   },
   {
     nodeId: "root-1-b",
     parentId: "root-1",
     action: { action: "PLACE_C", letter: "C", position: [2, 2] as [number, number], rationale: "Building the center column — opens multiple cross-checks." },
+    actionSequence: [actions[1]!, { action: "PLACE_C", letter: "C", position: [2, 2] as [number, number], rationale: "Center column." }],
     visits: 4,
     totalValue: 1.84,
     meanValue: 0.46,
     isTerminal: false,
+    depth: 2,
     state: deepStates["root-1-b"]!,
+    childrenIds: ["root-1-b-1"],
+    candidateActions: [
+      { action: "PLACE_S", letter: "S", position: [4, 0] as [number, number], rationale: "Bottom-left anchor." },
+    ],
+    candidateScores: [0.71],
+    expandedActionKeys: ["PLACE_S-0"],
   },
   {
     nodeId: "root-1-c",
     parentId: "root-1",
     action: { action: "PLACE_S", letter: "S", position: [4, 0] as [number, number], rationale: "Left column anchor — starts a bottom-row word." },
+    actionSequence: [actions[1]!, { action: "PLACE_S", letter: "S", position: [4, 0] as [number, number], rationale: "Left anchor." }],
     visits: 3,
     totalValue: 1.2,
     meanValue: 0.40,
     isTerminal: false,
+    depth: 2,
     state: deepStates["root-1-c"]!,
+    childrenIds: [],
+    candidateActions: [],
+    candidateScores: [],
+    expandedActionKeys: [],
   },
   {
     nodeId: "root-0-a",
     parentId: "root-0",
     action: { action: "PLACE_O", letter: "O", position: [0, 2] as [number, number], rationale: "Core vowel placement — unlocks both horizontal and vertical words." },
+    actionSequence: [actions[0]!, { action: "PLACE_O", letter: "O", position: [0, 2] as [number, number], rationale: "Core vowel." }],
     visits: 6,
     totalValue: 2.46,
     meanValue: 0.41,
     isTerminal: false,
+    depth: 2,
     state: deepStates["root-0-a"]!,
+    childrenIds: ["root-0-a-1"],
+    candidateActions: [
+      { action: "PLACE_R", letter: "R", position: [0, 3] as [number, number], rationale: "Extends the top row." },
+    ],
+    candidateScores: [0.41],
+    expandedActionKeys: ["PLACE_R-0"],
   },
   {
     nodeId: "root-2-a",
     parentId: "root-2",
     action: { action: "PLACE_C", letter: "C", position: [2, 2] as [number, number], rationale: "Center column strike — creates intersecting constraints." },
+    actionSequence: [actions[2]!, { action: "PLACE_C", letter: "C", position: [2, 2] as [number, number], rationale: "Center column." }],
     visits: 4,
     totalValue: 1.2,
     meanValue: 0.30,
     isTerminal: false,
+    depth: 2,
     state: deepStates["root-2-a"]!,
+    childrenIds: ["root-2-a-1", "root-2-a-2"],
+    candidateActions: [
+      { action: "PLACE_R", letter: "R", position: [0, 3] as [number, number], rationale: "Improves symmetry." },
+      { action: "PLACE_O", letter: "O", position: [0, 2] as [number, number], rationale: "Alternative path." },
+    ],
+    candidateScores: [0.69, 0.67],
+    expandedActionKeys: ["PLACE_R-0", "PLACE_O-1"],
   },
   {
     nodeId: "root-3-a",
     parentId: "root-3",
     action: { action: "PLACE_E", letter: "E", position: [4, 1] as [number, number], rationale: "Extending the bottom row toward SEEDS." },
+    actionSequence: [actions[3]!, { action: "PLACE_E", letter: "E", position: [4, 1] as [number, number], rationale: "Bottom row." }],
     visits: 4,
     totalValue: 0.96,
     meanValue: 0.24,
     isTerminal: false,
+    depth: 2,
     state: deepStates["root-3-a"]!,
+    childrenIds: [],
+    candidateActions: [],
+    candidateScores: [],
+    expandedActionKeys: [],
   },
   {
     nodeId: "root-1-a-1",
     parentId: "root-1-a",
     action: { action: "PLACE_C", letter: "C", position: [2, 2] as [number, number], rationale: "Completes intersection — high-constraint placement." },
+    actionSequence: [actions[1]!, { action: "PLACE_R", letter: "R", position: [0, 3] as [number, number], rationale: "" }, { action: "PLACE_C", letter: "C", position: [2, 2] as [number, number], rationale: "Intersection." }],
     visits: 4,
     totalValue: 2.72,
     meanValue: 0.68,
     isTerminal: false,
+    depth: 3,
     state: deepStates["root-1-a-1"]!,
+    childrenIds: ["root-1-a-1-1"],
+    candidateActions: [
+      { action: "PLACE_S", letter: "S", position: [4, 0] as [number, number], rationale: "Bottom-left anchor." },
+    ],
+    candidateScores: [0.78],
+    expandedActionKeys: ["PLACE_S-0"],
   },
   {
     nodeId: "root-1-a-2",
     parentId: "root-1-a",
     action: { action: "PLACE_L", letter: "L", position: [2, 3] as [number, number], rationale: "Extends the second-row word — partial but promising." },
+    actionSequence: [actions[1]!, { action: "PLACE_R", letter: "R", position: [0, 3] as [number, number], rationale: "" }, { action: "PLACE_L", letter: "L", position: [2, 3] as [number, number], rationale: "Extension." }],
     visits: 3,
     totalValue: 1.59,
     meanValue: 0.53,
     isTerminal: false,
+    depth: 3,
     state: deepStates["root-1-a-2"]!,
+    childrenIds: [],
+    candidateActions: [],
+    candidateScores: [],
+    expandedActionKeys: [],
   },
   {
     nodeId: "root-1-a-1-1",
     parentId: "root-1-a-1",
     action: { action: "PLACE_S", letter: "S", position: [4, 0] as [number, number], rationale: "Anchors the bottom-left — sets up SEEDS completion." },
+    actionSequence: [actions[1]!, { action: "PLACE_R", letter: "R", position: [0, 3] as [number, number], rationale: "" }, { action: "PLACE_C", letter: "C", position: [2, 2] as [number, number], rationale: "" }, { action: "PLACE_S", letter: "S", position: [4, 0] as [number, number], rationale: "Anchor." }],
     visits: 3,
     totalValue: 2.34,
     meanValue: 0.78,
     isTerminal: false,
+    depth: 4,
     state: deepStates["root-1-a-1-1"]!,
+    childrenIds: [],
+    candidateActions: [],
+    candidateScores: [],
+    expandedActionKeys: [],
   },
 ];
 
@@ -276,6 +371,11 @@ const iterations = [
   },
 ];
 
+const nodeRegistry: Record<string, NodeData> = {};
+for (const node of nodes) {
+  nodeRegistry[node.nodeId] = node;
+}
+
 export function getMockRun() {
   const nextState = makeState({
     board: fillCell(fillCell(fillCell(deep1a2Board, "E", 4, 2), "D", 4, 3), "S", 4, 4),
@@ -300,6 +400,10 @@ export function getMockRun() {
         value: nodes[index + 1]?.meanValue ?? 0,
       })),
       bestAction: actions[1]!,
+      rootNodeId: "root",
+      bestChildNodeId: "root-1",
+      nodeRegistry,
+      iterationLogs: iterations,
     },
     transition: {
       actionTaken: actions[1]!,

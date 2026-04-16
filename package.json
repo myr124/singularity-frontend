@@ -10,6 +10,7 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "dev": "next dev --turbo",
+    "data:ls20": "node scripts/build-ls20-run.mjs",
     "docker:down": "docker compose down",
     "docker:up": "docker compose up -d",
     "lint": "next lint",
