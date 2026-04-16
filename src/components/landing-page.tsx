@@ -3,29 +3,41 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { Grid3x3, Type, Calculator } from "lucide-react";
 import { ParticleSystem } from "~/lib/particle-system";
+import { getAllTasks } from "~/lib/tasks/registry";
+
+const TASK_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  arc: Grid3x3,
+  "word-puzzle": Type,
+  math: Calculator,
+};
 
 export function LandingPage() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const systemRef = useRef<ParticleSystem | null>(null);
     const router = useRouter();
     const [showContent, setShowContent] = useState(false);
-    const [showButton, setShowButton] = useState(false);
-    const [isTransitioning, setIsTransitioning] = useState(false);
+    const [showTasks, setShowTasks] = useState(false);
+    const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+
+    const tasks = getAllTasks().filter((t) => t.id !== "template");
 
     useEffect(() => {
         setShowContent(true);
-        const timer = setTimeout(() => setShowButton(true), 3000);
+        const timer = setTimeout(() => setShowTasks(true), 2000);
         return () => clearTimeout(timer);
     }, []);
 
-    const handleGetStarted = useCallback(() => {
-        if (isTransitioning) return;
-        setIsTransitioning(true);
-        systemRef.current?.startZoom(() => {
-            router.push("/mcts");
-        });
-    }, [isTransitioning, router]);
+    const handleNavigate = useCallback((taskId: string) => {
+        if (navigatingTo) return;
+        setNavigatingTo(taskId);
+        setTimeout(() => {
+            systemRef.current?.startZoom(() => {
+                router.push(`/mcts/${taskId}`);
+            });
+        }, 200);
+    }, [navigatingTo, router]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -65,11 +77,11 @@ export function LandingPage() {
         <div className="landing-container">
             <canvas
                 ref={canvasRef}
-                className="absolute inset-0 h-full w-full"
+                className="absolute inset-0 h-[60vh] w-full"
                 aria-hidden="true"
             />
 
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <div className="absolute inset-0 flex flex-col items-center pt-[10vh] pointer-events-none">
                 <AnimatePresence>
                     {showContent && (
                         <motion.div
@@ -84,34 +96,53 @@ export function LandingPage() {
                             <h1 className="singularity-wordmark bg-[linear-gradient(135deg,#f7fdff_0%,#b8f7ff_22%,#67e7ff_46%,#2b7fff_76%,#f1fbff_100%)] bg-clip-text pb-6 text-center text-5xl text-transparent md:text-7xl">
                                 Singularity
                             </h1>
-                            <motion.p
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 0.6 }}
-                                transition={{ duration: 1, delay: 0.8 }}
-                                className="mt-2 max-w-md text-center text-sm leading-6 text-cyan-100 md:text-base"
-                            >
-                                Visualizing the decision architecture of artificial cognition
-                            </motion.p>
-                        </motion.div>
+                            </motion.div>
                     )}
                 </AnimatePresence>
+            </div>
 
+            <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center pb-12 pt-8 pointer-events-none">
                 <AnimatePresence>
-                    {showButton && (
-                        <motion.button
-                            initial={{ opacity: 0, y: 16 }}
+                    {showTasks && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 24 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, ease: "easeOut" }}
-                            onClick={handleGetStarted}
-                            onMouseEnter={() => systemRef.current?.setSideView(true)}
-                            onMouseLeave={() => systemRef.current?.setSideView(false)}
-                            onFocus={() => systemRef.current?.setSideView(true)}
-                            onBlur={() => systemRef.current?.setSideView(false)}
-                            className="btn-get-started pointer-events-auto mt-10 rounded-full border border-cyan-300/20 bg-white/[0.04] px-10 py-3 text-sm uppercase tracking-[0.28em] text-cyan-100 backdrop-blur-xl transition-all hover:border-cyan-300/40 hover:bg-white/[0.08] hover:text-white"
-                            aria-label="Get Started - Enter MCTS Visualizer"
+                            className="pointer-events-auto flex w-full max-w-3xl flex-col items-center gap-4 px-4"
                         >
-                            Get Started
-                        </motion.button>
+                            <p className="text-[10px] uppercase tracking-[0.4em] text-cyan-100/40">Choose a visualization</p>
+                            <div
+                                className="flex items-center justify-center gap-3"
+                                onMouseEnter={() => { if (!navigatingTo) systemRef.current?.convergeToFront(); }}
+                                onMouseLeave={() => systemRef.current?.drift()}
+                            >
+                                {tasks.map((task) => {
+                                    const Icon = TASK_ICONS[task.id];
+                                    const isNavigating = navigatingTo === task.id;
+                                    return (
+                                        <button
+                                            key={task.id}
+                                            onClick={() => handleNavigate(task.id)}
+                                            disabled={!!navigatingTo}
+                                            className="btn-get-started group relative flex items-center gap-2.5 rounded-full border border-cyan-300/16 bg-white/[0.03] px-6 py-3 backdrop-blur-xl transition-all hover:border-cyan-300/40 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40 md:px-8 md:py-3.5"
+                                            aria-label={`Open ${task.name} visualizer`}
+                                        >
+                                            {Icon && <Icon className="h-4 w-4 text-cyan-200/70 transition-colors group-hover:text-cyan-100" />}
+                                            <span className="text-xs uppercase tracking-[0.22em] text-cyan-100/80 transition-colors group-hover:text-white md:text-sm">
+                                                {task.name}
+                                            </span>
+                                            {isNavigating && (
+                                                <motion.div
+                                                    className="absolute inset-0 rounded-full bg-white/[0.06]"
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
                     )}
                 </AnimatePresence>
             </div>

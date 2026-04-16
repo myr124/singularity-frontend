@@ -19,7 +19,10 @@ const {
   skip,
   Decimal,
   Debug,
-  objectEnumValues,
+  DbNull,
+  JsonNull,
+  AnyNull,
+  NullTypes,
   makeStrictEnum,
   Extensions,
   warnOnce,
@@ -27,7 +30,7 @@ const {
   Public,
   getRuntime,
   createParam,
-} = require('./runtime/library.js')
+} = require('./runtime/client.js')
 
 
 const Prisma = {}
@@ -36,12 +39,12 @@ exports.Prisma = Prisma
 exports.$Enums = {}
 
 /**
- * Prisma Client JS version: 6.19.3
- * Query Engine version: c2990dca591cba766e3b7ef5d9e8a84796e47ab7
+ * Prisma Client JS version: 7.7.0
+ * Query Engine version: 75cbdc1eb7150937890ad5465d861175c6624711
  */
 Prisma.prismaVersion = {
-  client: "6.19.3",
-  engine: "c2990dca591cba766e3b7ef5d9e8a84796e47ab7"
+  client: "7.7.0",
+  engine: "75cbdc1eb7150937890ad5465d861175c6624711"
 }
 
 Prisma.PrismaClientKnownRequestError = PrismaClientKnownRequestError;
@@ -69,15 +72,11 @@ Prisma.defineExtension = Extensions.defineExtension
 /**
  * Shorthand utilities for JSON filtering
  */
-Prisma.DbNull = objectEnumValues.instances.DbNull
-Prisma.JsonNull = objectEnumValues.instances.JsonNull
-Prisma.AnyNull = objectEnumValues.instances.AnyNull
+Prisma.DbNull = DbNull
+Prisma.JsonNull = JsonNull
+Prisma.AnyNull = AnyNull
 
-Prisma.NullTypes = {
-  DbNull: objectEnumValues.classes.DbNull,
-  JsonNull: objectEnumValues.classes.JsonNull,
-  AnyNull: objectEnumValues.classes.AnyNull
-}
+Prisma.NullTypes = NullTypes
 
 
 
@@ -164,91 +163,31 @@ exports.Prisma.ModelName = {
  * Create the Client
  */
 const config = {
-  "generator": {
-    "name": "client",
-    "provider": {
-      "fromEnvVar": null,
-      "value": "prisma-client-js"
-    },
-    "output": {
-      "value": "/Users/ericgeorge/workspace/code/singularity/generated/prisma",
-      "fromEnvVar": null
-    },
-    "config": {
-      "engineType": "library"
-    },
-    "binaryTargets": [
-      {
-        "fromEnvVar": null,
-        "value": "darwin-arm64",
-        "native": true
-      }
-    ],
-    "previewFeatures": [],
-    "sourceFilePath": "/Users/ericgeorge/workspace/code/singularity/prisma/schema.prisma",
-    "isCustomOutput": true
-  },
-  "relativeEnvPaths": {
-    "rootEnvPath": null,
-    "schemaEnvPath": "../../.env"
-  },
-  "relativePath": "../../prisma",
-  "clientVersion": "6.19.3",
-  "engineVersion": "c2990dca591cba766e3b7ef5d9e8a84796e47ab7",
-  "datasourceNames": [
-    "db"
-  ],
+  "previewFeatures": [],
+  "clientVersion": "7.7.0",
+  "engineVersion": "75cbdc1eb7150937890ad5465d861175c6624711",
   "activeProvider": "postgresql",
-  "inlineDatasources": {
-    "db": {
-      "url": {
-        "fromEnvVar": "DATABASE_URL",
-        "value": null
-      }
-    }
-  },
-  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider  = \"postgresql\"\n  url       = env(\"DATABASE_URL\")\n  directUrl = env(\"DIRECT_URL\")\n}\n\nmodel DevUser {\n  id          String       @id @default(cuid())\n  displayName String\n  createdAt   DateTime     @default(now())\n  updatedAt   DateTime     @updatedAt\n  sessions    RunSession[]\n}\n\nmodel RunSession {\n  id          String    @id @default(cuid())\n  title       String\n  description String?\n  status      String\n  accentColor String    @default(\"#52d6ff\")\n  createdAt   DateTime  @default(now())\n  updatedAt   DateTime  @updatedAt\n  ownerId     String?\n  owner       DevUser?  @relation(fields: [ownerId], references: [id], onDelete: SetNull)\n  steps       RunStep[]\n}\n\nmodel RunStep {\n  id              String     @id @default(cuid())\n  sessionId       String\n  stepIndex       Int\n  envState        Json\n  decision        Json\n  iterations      Json\n  transition      Json\n  availableAction Json?\n  createdAt       DateTime   @default(now())\n  session         RunSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)\n\n  @@unique([sessionId, stepIndex])\n  @@index([sessionId])\n}\n",
-  "inlineSchemaHash": "1f7d35736e6d8d8c63b19115772a801fc061fbdfa6b2e16cea163f9623761308",
-  "copyEngine": true
+  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nmodel DevUser {\n  id          String       @id @default(cuid())\n  displayName String\n  createdAt   DateTime     @default(now())\n  updatedAt   DateTime     @updatedAt\n  sessions    RunSession[]\n}\n\nmodel RunSession {\n  id          String    @id @default(cuid())\n  title       String\n  description String?\n  status      String\n  accentColor String    @default(\"#52d6ff\")\n  createdAt   DateTime  @default(now())\n  updatedAt   DateTime  @updatedAt\n  ownerId     String?\n  owner       DevUser?  @relation(fields: [ownerId], references: [id], onDelete: SetNull)\n  steps       RunStep[]\n}\n\nmodel RunStep {\n  id              String     @id @default(cuid())\n  sessionId       String\n  stepIndex       Int\n  envState        Json\n  decision        Json\n  iterations      Json\n  transition      Json\n  availableAction Json?\n  createdAt       DateTime   @default(now())\n  session         RunSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)\n\n  @@unique([sessionId, stepIndex])\n  @@index([sessionId])\n}\n"
 }
 
-const fs = require('fs')
-
-config.dirname = __dirname
-if (!fs.existsSync(path.join(__dirname, 'schema.prisma'))) {
-  const alternativePaths = [
-    "generated/prisma",
-    "prisma",
-  ]
-  
-  const alternativePath = alternativePaths.find((altPath) => {
-    return fs.existsSync(path.join(process.cwd(), altPath, 'schema.prisma'))
-  }) ?? alternativePaths[0]
-
-  config.dirname = path.join(process.cwd(), alternativePath)
-  config.isBundled = true
-}
-
-config.runtimeDataModel = JSON.parse("{\"models\":{\"DevUser\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"String\",\"nativeType\":null,\"default\":{\"name\":\"cuid\",\"args\":[1]},\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"displayName\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"DateTime\",\"nativeType\":null,\"default\":{\"name\":\"now\",\"args\":[]},\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"DateTime\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":true},{\"name\":\"sessions\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"RunSession\",\"nativeType\":null,\"relationName\":\"DevUserToRunSession\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"RunSession\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"String\",\"nativeType\":null,\"default\":{\"name\":\"cuid\",\"args\":[1]},\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"title\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"description\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"status\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"accentColor\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"String\",\"nativeType\":null,\"default\":\"#52d6ff\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"DateTime\",\"nativeType\":null,\"default\":{\"name\":\"now\",\"args\":[]},\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"DateTime\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":true},{\"name\":\"ownerId\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"owner\",\"kind\":\"object\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"DevUser\",\"nativeType\":null,\"relationName\":\"DevUserToRunSession\",\"relationFromFields\":[\"ownerId\"],\"relationToFields\":[\"id\"],\"relationOnDelete\":\"SetNull\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"steps\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"RunStep\",\"nativeType\":null,\"relationName\":\"RunSessionToRunStep\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"RunStep\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"String\",\"nativeType\":null,\"default\":{\"name\":\"cuid\",\"args\":[1]},\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"sessionId\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"stepIndex\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"envState\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Json\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"decision\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Json\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"iterations\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Json\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"transition\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Json\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"availableAction\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Json\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"DateTime\",\"nativeType\":null,\"default\":{\"name\":\"now\",\"args\":[]},\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"session\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"RunSession\",\"nativeType\":null,\"relationName\":\"RunSessionToRunStep\",\"relationFromFields\":[\"sessionId\"],\"relationToFields\":[\"id\"],\"relationOnDelete\":\"Cascade\",\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[[\"sessionId\",\"stepIndex\"]],\"uniqueIndexes\":[{\"name\":null,\"fields\":[\"sessionId\",\"stepIndex\"]}],\"isGenerated\":false}},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"DevUser\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"displayName\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"sessions\",\"kind\":\"object\",\"type\":\"RunSession\",\"relationName\":\"DevUserToRunSession\"}],\"dbName\":null},\"RunSession\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"title\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"description\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"accentColor\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"ownerId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"owner\",\"kind\":\"object\",\"type\":\"DevUser\",\"relationName\":\"DevUserToRunSession\"},{\"name\":\"steps\",\"kind\":\"object\",\"type\":\"RunStep\",\"relationName\":\"RunSessionToRunStep\"}],\"dbName\":null},\"RunStep\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"sessionId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"stepIndex\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"envState\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"decision\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"iterations\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"transition\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"availableAction\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"session\",\"kind\":\"object\",\"type\":\"RunSession\",\"relationName\":\"RunSessionToRunStep\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
 defineDmmfProperty(exports.Prisma, config.runtimeDataModel)
-config.engineWasm = undefined
-config.compilerWasm = undefined
+config.parameterizationSchema = {
+  strings: JSON.parse("[\"where\",\"orderBy\",\"cursor\",\"owner\",\"session\",\"steps\",\"_count\",\"sessions\",\"DevUser.findUnique\",\"DevUser.findUniqueOrThrow\",\"DevUser.findFirst\",\"DevUser.findFirstOrThrow\",\"DevUser.findMany\",\"data\",\"DevUser.createOne\",\"DevUser.createMany\",\"DevUser.createManyAndReturn\",\"DevUser.updateOne\",\"DevUser.updateMany\",\"DevUser.updateManyAndReturn\",\"create\",\"update\",\"DevUser.upsertOne\",\"DevUser.deleteOne\",\"DevUser.deleteMany\",\"having\",\"_min\",\"_max\",\"DevUser.groupBy\",\"DevUser.aggregate\",\"RunSession.findUnique\",\"RunSession.findUniqueOrThrow\",\"RunSession.findFirst\",\"RunSession.findFirstOrThrow\",\"RunSession.findMany\",\"RunSession.createOne\",\"RunSession.createMany\",\"RunSession.createManyAndReturn\",\"RunSession.updateOne\",\"RunSession.updateMany\",\"RunSession.updateManyAndReturn\",\"RunSession.upsertOne\",\"RunSession.deleteOne\",\"RunSession.deleteMany\",\"RunSession.groupBy\",\"RunSession.aggregate\",\"RunStep.findUnique\",\"RunStep.findUniqueOrThrow\",\"RunStep.findFirst\",\"RunStep.findFirstOrThrow\",\"RunStep.findMany\",\"RunStep.createOne\",\"RunStep.createMany\",\"RunStep.createManyAndReturn\",\"RunStep.updateOne\",\"RunStep.updateMany\",\"RunStep.updateManyAndReturn\",\"RunStep.upsertOne\",\"RunStep.deleteOne\",\"RunStep.deleteMany\",\"_avg\",\"_sum\",\"RunStep.groupBy\",\"RunStep.aggregate\",\"AND\",\"OR\",\"NOT\",\"id\",\"sessionId\",\"stepIndex\",\"envState\",\"decision\",\"iterations\",\"transition\",\"availableAction\",\"createdAt\",\"equals\",\"in\",\"notIn\",\"lt\",\"lte\",\"gt\",\"gte\",\"not\",\"string_contains\",\"string_starts_with\",\"string_ends_with\",\"array_starts_with\",\"array_ends_with\",\"array_contains\",\"contains\",\"startsWith\",\"endsWith\",\"title\",\"description\",\"status\",\"accentColor\",\"updatedAt\",\"ownerId\",\"displayName\",\"sessionId_stepIndex\",\"every\",\"some\",\"none\",\"is\",\"isNot\",\"connectOrCreate\",\"upsert\",\"createMany\",\"set\",\"disconnect\",\"delete\",\"connect\",\"updateMany\",\"deleteMany\",\"increment\",\"decrement\",\"multiply\",\"divide\"]"),
+  graph: "tQEdMAgHAABxACBAAABwADBBAAAHABBCAABwADBDAQAAAAFLQABuACFhQABuACFjAQBqACEBAAAAAQAgDQMAAHQAIAUAAHUAIEAAAHIAMEEAAAMAEEIAAHIAMEMBAGoAIUtAAG4AIV0BAGoAIV4BAHMAIV8BAGoAIWABAGoAIWFAAG4AIWIBAHMAIQQDAACoAQAgBQAAqQEAIF4AAHYAIGIAAHYAIA0DAAB0ACAFAAB1ACBAAAByADBBAAADABBCAAByADBDAQAAAAFLQABuACFdAQBqACFeAQBzACFfAQBqACFgAQBqACFhQABuACFiAQBzACEDAAAAAwAgAQAABAAwAgAABQAgCAcAAHEAIEAAAHAAMEEAAAcAEEIAAHAAMEMBAGoAIUtAAG4AIWFAAG4AIWMBAGoAIQEAAAAHACANBAAAbwAgQAAAaQAwQQAACQAQQgAAaQAwQwEAagAhRAEAagAhRQIAawAhRgAAbAAgRwAAbAAgSAAAbAAgSQAAbAAgSgAAbQAgS0AAbgAhAgQAAKcBACBKAAB2ACAOBAAAbwAgQAAAaQAwQQAACQAQQgAAaQAwQwEAAAABRAEAagAhRQIAawAhRgAAbAAgRwAAbAAgSAAAbAAgSQAAbAAgSgAAbQAgS0AAbgAhZAAAaAAgAwAAAAkAIAEAAAoAMAIAAAsAIAEAAAAJACABAAAAAwAgAQAAAAEAIAEHAACmAQAgAwAAAAcAIAEAABAAMAIAAAEAIAMAAAAHACABAAAQADACAAABACADAAAABwAgAQAAEAAwAgAAAQAgBQcAAKUBACBDAQAAAAFLQAAAAAFhQAAAAAFjAQAAAAEBDQAAFAAgBEMBAAAAAUtAAAAAAWFAAAAAAWMBAAAAAQENAAAWADABDQAAFgAwBQcAAJgBACBDAQB8ACFLQAB-ACFhQAB-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-ACFhQAB-ACFjAQB8ACEJAwAAkwEAIEMBAAAAAUtAAAAAAV0BAAAAAV4BAAAAAV8BAAAAAWABAAAAAWFAAAAAAWIBAAAAAQIAAAAFACAUAACxAQAgAwAAAAMAIBQAALEBACAVAAC1AQAgCwAAAAMAIAMAAIUBACANAAC1AQAgQwEAfAAhS0AAfgAhXQEAfAAhXgEAhAEAIV8BAHwAIWABAHwAIWFAAH4AIWIBAIQBACEJAwAAhQEAIEMBAHwAIUtAAH4AIV0BAHwAIV4BAIQBACFfAQB8ACFgAQB8ACFhQAB-ACFiAQCEAQAhAgYABQcGAgMDCAEFDAMGAAQBBAACAQUNAAEHDgAAAAADBgAKGgALGwAMAAAAAwYAChoACxsADAEDLwEBAzUBAwYAERoAEhsAEwAAAAMGABEaABIbABMBBAACAQQAAgUGABgaABsbABw8ABk9ABoAAAAAAAUGABgaABsbABw8ABk9ABoIAgEJDwEKEQELEgEMEwEOFQEPFwYQGAcRGgESHAYTHQgWHgEXHwEYIAYcIwkdJA0eJQIfJgIgJwIhKAIiKQIjKwIkLQYlLg4mMQInMwYoNA8pNgIqNwIrOAYsOxAtPBQuPQMvPgMwPwMxQAMyQQMzQwM0RQY1RhU2SAM3SgY4SxY5TAM6TQM7TgY-URc_Uh0"
+}
+config.compilerWasm = {
+      getRuntime: async () => require('./query_compiler_fast_bg.js'),
+      getQueryCompilerWasmModule: async () => {
+        const { Buffer } = require('node:buffer')
+        const { wasm } = require('./query_compiler_fast_bg.wasm-base64.js')
+        const queryCompilerWasmFileBytes = Buffer.from(wasm, 'base64')
 
-
-const { warnEnvConflicts } = require('./runtime/library.js')
-
-warnEnvConflicts({
-    rootEnvPath: config.relativeEnvPaths.rootEnvPath && path.resolve(config.dirname, config.relativeEnvPaths.rootEnvPath),
-    schemaEnvPath: config.relativeEnvPaths.schemaEnvPath && path.resolve(config.dirname, config.relativeEnvPaths.schemaEnvPath)
-})
+        return new WebAssembly.Module(queryCompilerWasmFileBytes)
+      },
+      importName: './query_compiler_fast_bg.js',
+    }
 
 const PrismaClient = getPrismaClient(config)
 exports.PrismaClient = PrismaClient
 Object.assign(exports, Prisma)
-
-// file annotations for bundling tools to include these files
-path.join(__dirname, "libquery_engine-darwin-arm64.dylib.node");
-path.join(process.cwd(), "generated/prisma/libquery_engine-darwin-arm64.dylib.node")
-// file annotations for bundling tools to include these files
-path.join(__dirname, "schema.prisma");
-path.join(process.cwd(), "generated/prisma/schema.prisma")

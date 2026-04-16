@@ -60,6 +60,18 @@ export class ParticleSystem {
     this.phase = active ? "converge" : "drift";
   }
 
+  convergeToFront() {
+    if (this.phase === "zoom") return;
+    this.phase = "converge";
+    this.sideViewActive = false;
+  }
+
+  drift() {
+    if (this.phase === "zoom") return;
+    this.phase = "drift";
+    this.sideViewActive = false;
+  }
+
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     const ctx = canvas.getContext("2d");
@@ -284,9 +296,14 @@ export class ParticleSystem {
         p.vy += (Math.random() - 0.5) * 0.0004;
       }
 
-      if (this.phase === "converge" || this.phase === "zoom") {
-        const springK = this.phase === "zoom" ? 0.12 : 0.06;
-        const damping = this.phase === "zoom" ? 0.85 : 0.9;
+      if (this.phase === "converge") {
+        p.vx = (p.targetX - p.x) * 0.08;
+        p.vy = (p.targetY - p.y) * 0.08;
+      }
+
+      if (this.phase === "zoom") {
+        const springK = 0.12;
+        const damping = 0.85;
         p.vx += (p.targetX - p.x) * springK;
         p.vy += (p.targetY - p.y) * springK;
         p.vx *= damping;

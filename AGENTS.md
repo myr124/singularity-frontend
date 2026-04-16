@@ -11,9 +11,11 @@ No test framework is configured. There are no test scripts, test files, or test 
 
 ## Database
 
-- PostgreSQL runs in Docker on **port 5433** (not the default 5432). Start with `pnpm docker:up`.
-- Prisma output is set to `../generated/prisma` (relative to `prisma/schema.prisma`), so the generated client lives at `generated/prisma/`. This runs automatically on `postinstall`.
-- Required env vars: `DATABASE_URL`, `DIRECT_URL` (see `.env.example`). `SKIP_ENV_VALIDATION=1` bypasses env checks during build.
+- **Production**: Neon Postgres (serverless). Uses `PrismaNeon` adapter (HTTP-based) for connections that work in all network environments.
+- **Local dev**: Docker Postgres on **port 5433** (not the default 5432). Start with `pnpm docker:up`. Switch `.env` `DATABASE_URL` to `postgresql://postgres:postgres@localhost:5433/singularity` for local dev.
+- Prisma v7 uses `prisma.config.ts` for datasource config (not `url`/`directUrl` in schema.prisma). CLI commands (`db:push`, `migrate`) require TCP access to Postgres — use local Docker or run from an environment with TCP access.
+- Prisma output is set to `../generated/prisma`, so the generated client lives at `generated/prisma/`. Runs automatically on `postinstall`.
+- Required env var: `DATABASE_URL` (see `.env.example`). `SKIP_ENV_VALIDATION=1` bypasses env checks during build.
 - Current tRPC routers return mock data only. The DB schema exists (`DevUser`, `RunSession`, `RunStep`) but is not wired into any routes yet.
 
 ## Architecture
