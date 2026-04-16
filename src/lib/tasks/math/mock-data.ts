@@ -1,108 +1,87 @@
 import { runDatasetSchema } from "./contracts";
 import type { ActionCandidate, EnvState } from "./contracts";
 
-function makeState(overrides: Partial<EnvState> & { expression: string; target: number; current: number }): EnvState {
+function s(overrides: Partial<EnvState> & { problem: string; working: string }): EnvState {
   return {
-    state: "RUNNING",
+    finalAnswer: null,
+    state: "NOT_FINISHED",
     score: 0,
     stepIndex: 0,
-    tokensUsed: [],
     ...overrides,
   };
 }
 
-const TARGET = 752;
-const rootState: EnvState = makeState({
-  expression: "100",
-  target: TARGET,
-  current: 100,
-  score: 1 - Math.abs(100 - TARGET) / TARGET,
+const PROBLEM = "Solve for x: 2x + 5y = 17 − 9. Given y = 5";
+
+const rootState: EnvState = s({
+  problem: PROBLEM,
+  working: "2x + 5y = 17 − 9",
+  score: 0.0,
   stepIndex: 0,
-  tokensUsed: ["100"],
 });
 
-const actions: ActionCandidate[] = [
-  { action: "ADD_8", operation: "add", operand: 8, rationale: "Push toward 752 — incremental gain." },
-  { action: "MUL_7", operation: "multiply", operand: 7, rationale: "Multiply to jump into the 700+ range." },
-  { action: "ADD_600", operation: "add", operand: 600, rationale: "Direct addition — lands at 700." },
-  { action: "SUB_3", operation: "subtract", operand: 3, rationale: "Minor correction — low-impact exploration branch." },
-];
+const step1State: EnvState = s({
+  problem: PROBLEM,
+  working: "Simplify: 17 − 9 = 8 → 2x + 5y = 8",
+  score: 0.1,
+  stepIndex: 1,
+});
 
-const childStates: EnvState[] = [
-  makeState({
-    expression: "100 + 8",
-    target: TARGET,
-    current: 108,
-    score: 1 - Math.abs(108 - TARGET) / TARGET,
-    stepIndex: 1,
-    tokensUsed: ["100", "+", "8"],
-  }),
-  makeState({
-    expression: "100 × 7",
-    target: TARGET,
-    current: 700,
-    score: 1 - Math.abs(700 - TARGET) / TARGET,
-    stepIndex: 1,
-    tokensUsed: ["100", "×", "7"],
-  }),
-  makeState({
-    expression: "100 + 600",
-    target: TARGET,
-    current: 700,
-    score: 1 - Math.abs(700 - TARGET) / TARGET,
-    stepIndex: 1,
-    tokensUsed: ["100", "+", "600"],
-  }),
-  makeState({
-    expression: "100 − 3",
-    target: TARGET,
-    current: 97,
-    score: 1 - Math.abs(97 - TARGET) / TARGET,
-    stepIndex: 1,
-    tokensUsed: ["100", "−", "3"],
-  }),
-];
+const step2State: EnvState = s({
+  problem: PROBLEM,
+  working: "Substitute y = 5: 2x + 5(5) = 8 → 2x + 25 = 8",
+  score: 0.2,
+  stepIndex: 2,
+});
 
-const deepStates: Record<string, EnvState> = {
-  "root-0-a": makeState({
-    expression: "100 + 8 + 44", target: TARGET, current: 152,
-    score: 1 - Math.abs(152 - TARGET) / TARGET, stepIndex: 2, tokensUsed: ["100", "+", "8", "+", "44"],
-  }),
-  "root-1-a": makeState({
-    expression: "100 × 7 + 52", target: TARGET, current: 752,
-    score: 1 - Math.abs(752 - TARGET) / TARGET, stepIndex: 2, tokensUsed: ["100", "×", "7", "+", "52"],
-  }),
-  "root-1-b": makeState({
-    expression: "100 × 7 + 40", target: TARGET, current: 740,
-    score: 1 - Math.abs(740 - TARGET) / TARGET, stepIndex: 2, tokensUsed: ["100", "×", "7", "+", "40"],
-  }),
-  "root-1-c": makeState({
-    expression: "100 × 7 − 8", target: TARGET, current: 692,
-    score: 1 - Math.abs(692 - TARGET) / TARGET, stepIndex: 2, tokensUsed: ["100", "×", "7", "−", "8"],
-  }),
-  "root-2-a": makeState({
-    expression: "100 + 600 + 52", target: TARGET, current: 752,
-    score: 1 - Math.abs(752 - TARGET) / TARGET, stepIndex: 2, tokensUsed: ["100", "+", "600", "+", "52"],
-  }),
-  "root-3-a": makeState({
-    expression: "100 − 3 + 655", target: TARGET, current: 752,
-    score: 1 - Math.abs(752 - TARGET) / TARGET, stepIndex: 2, tokensUsed: ["100", "−", "3", "+", "655"],
-  }),
-  "root-1-a-1": makeState({
-    expression: "100 × 7 + 52", target: TARGET, current: 752,
-    score: 1.0, stepIndex: 3, tokensUsed: ["100", "×", "7", "+", "52"],
-    state: "WIN",
-  }),
-  "root-1-a-2": makeState({
-    expression: "100 × 7 + 50", target: TARGET, current: 750,
-    score: 1 - Math.abs(750 - TARGET) / TARGET, stepIndex: 3, tokensUsed: ["100", "×", "7", "+", "50"],
-  }),
-  "root-2-a-1": makeState({
-    expression: "100 + 600 + 52 − 0", target: TARGET, current: 752,
-    score: 1.0, stepIndex: 3, tokensUsed: ["100", "+", "600", "+", "52", "−", "0"],
-    state: "WIN",
-  }),
-};
+const step3State: EnvState = s({
+  problem: PROBLEM,
+  working: "Subtract 25: 2x + 25 − 25 = 8 − 25 → 2x = −17",
+  score: 0.4,
+  stepIndex: 3,
+});
+
+const step4State: EnvState = s({
+  problem: PROBLEM,
+  working: "Divide by 2: x = −17/2",
+  finalAnswer: "−17/2",
+  state: "WIN",
+  score: 1.0,
+  stepIndex: 4,
+});
+
+const sim1Understand: EnvState = s({
+  problem: PROBLEM,
+  working: "Reviewing: solve 2x + 5y = 17 − 9 with y = 5",
+  score: 0.1,
+  stepIndex: 1,
+});
+
+const sim2Subpart: EnvState = s({
+  problem: PROBLEM,
+  working: "Simplify 5y term: 5(5) = 25 → 2x + 25 = 8",
+  score: 0.2,
+  stepIndex: 2,
+});
+
+const sim2TransformSub: EnvState = s({
+  problem: PROBLEM,
+  working: "Calculate 17 − 9 = 8, then substitute y",
+  score: 0.4,
+  stepIndex: 2,
+});
+
+const sim3Verify: EnvState = s({
+  problem: PROBLEM,
+  working: "Verifying: did we correctly simplify 17 − 9 = 8?",
+  score: 0.0,
+  stepIndex: 3,
+});
+
+const a1: ActionCandidate = { action: "TRANSFORM", rationale: "Simplify the constant term on the right side of the equation (17 − 9)." };
+const a2: ActionCandidate = { action: "TRANSFORM", rationale: "Substitute the given value of y into the equation." };
+const a3: ActionCandidate = { action: "TRANSFORM", rationale: "Subtract 25 from both sides of the equation 2x + 25 = 8." };
+const a4: ActionCandidate = { action: "TRANSFORM", rationale: "Divide both sides of the equation 2x = −17 by 2 to solve for x." };
 
 const nodes = [
   {
@@ -115,190 +94,173 @@ const nodes = [
     isTerminal: false,
     state: rootState,
   },
-  ...actions.map((action, index) => ({
-    nodeId: `root-${index}`,
+  {
+    nodeId: "root-0",
     parentId: "root",
-    action,
-    visits: [10, 15, 12, 5][index]!,
-    totalValue: [2.8, 8.25, 7.44, 1.35][index]!,
-    meanValue: [0.28, 0.55, 0.62, 0.27][index]!,
+    action: a1,
+    visits: 10,
+    totalValue: 2.8,
+    meanValue: 0.28,
     isTerminal: false,
-    state: childStates[index]!,
-  })),
-  {
-    nodeId: "root-0-a",
-    parentId: "root-0",
-    action: { action: "ADD_44", operation: "add" as const, operand: 44, rationale: "Slowly approach target with small increments." },
-    visits: 5,
-    totalValue: 1.3,
-    meanValue: 0.26,
-    isTerminal: false,
-    state: deepStates["root-0-a"]!,
+    state: step1State,
   },
   {
-    nodeId: "root-1-a",
-    parentId: "root-1",
-    action: { action: "ADD_52", operation: "add" as const, operand: 52, rationale: "Exact hit — 700 + 52 = 752!" },
+    nodeId: "root-1",
+    parentId: "root",
+    action: { action: "UNDERSTAND", rationale: "Review the problem statement to ensure full comprehension of the goal and given information." },
     visits: 8,
-    totalValue: 6.96,
-    meanValue: 0.87,
+    totalValue: 1.6,
+    meanValue: 0.20,
     isTerminal: false,
-    state: deepStates["root-1-a"]!,
+    state: sim1Understand,
   },
   {
-    nodeId: "root-1-b",
-    parentId: "root-1",
-    action: { action: "ADD_40", operation: "add" as const, operand: 40, rationale: "Close but not exact — 700 + 40 = 740." },
-    visits: 4,
-    totalValue: 2.52,
-    meanValue: 0.63,
-    isTerminal: false,
-    state: deepStates["root-1-b"]!,
-  },
-  {
-    nodeId: "root-1-c",
-    parentId: "root-1",
-    action: { action: "SUB_8", operation: "subtract" as const, operand: 8, rationale: "Reduces value — moving away from target." },
-    visits: 3,
-    totalValue: 0.99,
-    meanValue: 0.33,
-    isTerminal: false,
-    state: deepStates["root-1-c"]!,
-  },
-  {
-    nodeId: "root-2-a",
-    parentId: "root-2",
-    action: { action: "ADD_52", operation: "add" as const, operand: 52, rationale: "Direct hit from 700 — 700 + 52 = 752." },
+    nodeId: "root-0-0",
+    parentId: "root-0",
+    action: a2,
     visits: 7,
-    totalValue: 6.16,
-    meanValue: 0.88,
+    totalValue: 4.2,
+    meanValue: 0.60,
     isTerminal: false,
-    state: deepStates["root-2-a"]!,
+    state: step2State,
   },
   {
-    nodeId: "root-3-a",
-    parentId: "root-3",
-    action: { action: "ADD_655", operation: "add" as const, operand: 655, rationale: "Recovery — brute-force approach." },
-    visits: 3,
-    totalValue: 2.61,
-    meanValue: 0.87,
+    nodeId: "root-0-0-0",
+    parentId: "root-0-0",
+    action: a3,
+    visits: 6,
+    totalValue: 4.56,
+    meanValue: 0.76,
     isTerminal: false,
-    state: deepStates["root-3-a"]!,
+    state: step3State,
   },
   {
-    nodeId: "root-1-a-1",
-    parentId: "root-1-a",
-    action: { action: "CONFIRM", operation: "add" as const, operand: 0, rationale: "Target reached — 752 = 100 × 7 + 52!" },
+    nodeId: "root-0-0-0-0",
+    parentId: "root-0-0-0",
+    action: a4,
     visits: 5,
     totalValue: 5.0,
     meanValue: 1.0,
     isTerminal: true,
-    state: deepStates["root-1-a-1"]!,
+    state: step4State,
   },
   {
-    nodeId: "root-1-a-2",
-    parentId: "root-1-a",
-    action: { action: "ADD_50", operation: "add" as const, operand: 50, rationale: "Near miss — 700 + 50 = 750, off by 2." },
+    nodeId: "root-0-0-1",
+    parentId: "root-0-0",
+    action: { action: "SOLVE_SUBPART", rationale: "Simplify the term involving y after substitution." },
     visits: 3,
-    totalValue: 2.25,
-    meanValue: 0.75,
+    totalValue: 1.5,
+    meanValue: 0.50,
     isTerminal: false,
-    state: deepStates["root-1-a-2"]!,
+    state: sim2Subpart,
   },
   {
-    nodeId: "root-2-a-1",
-    parentId: "root-2-a",
-    action: { action: "CONFIRM", operation: "add" as const, operand: 0, rationale: "Target reached — 752 = 100 + 600 + 52." },
+    nodeId: "root-0-1",
+    parentId: "root-0",
+    action: { action: "SOLVE_SUBPART", rationale: "Calculate the numerical value of the expression 17 − 9 on the right side." },
+    visits: 3,
+    totalValue: 1.2,
+    meanValue: 0.40,
+    isTerminal: false,
+    state: sim2TransformSub,
+  },
+  {
+    nodeId: "root-1-0",
+    parentId: "root-1",
+    action: a1,
     visits: 4,
-    totalValue: 4.0,
-    meanValue: 1.0,
-    isTerminal: true,
-    state: deepStates["root-2-a-1"]!,
+    totalValue: 1.2,
+    meanValue: 0.30,
+    isTerminal: false,
+    state: step1State,
+  },
+  {
+    nodeId: "root-0-0-0-1",
+    parentId: "root-0-0-0",
+    action: { action: "VERIFY", rationale: "Substitute x = −17/2 and y = 5 back into the original equation to confirm." },
+    visits: 2,
+    totalValue: 1.6,
+    meanValue: 0.80,
+    isTerminal: false,
+    state: step3State,
+  },
+  {
+    nodeId: "root-0-0-0-2",
+    parentId: "root-0-0-0",
+    action: { action: "VERIFY", rationale: "Check the arithmetic of the previous step, specifically 8 − 25 = −17." },
+    visits: 2,
+    totalValue: 0.3,
+    meanValue: 0.15,
+    isTerminal: false,
+    state: sim3Verify,
   },
 ];
 
 const iterations = [
   {
     iterationIndex: 1,
-    selectedPath: ["root", "root-1"],
-    expandedNodeId: "root-1",
-    candidateActions: actions,
-    simulationResultValue: 0.55,
+    selectedPath: ["root", "root-0"],
+    expandedNodeId: "root-0",
+    candidateActions: [a1, { action: "UNDERSTAND", rationale: "Review the problem statement to ensure full comprehension." }],
+    simulationResultValue: 0.1,
     backpropUpdates: [
-      { nodeId: "root-1", visits: 1, meanValue: 0.55 },
-      { nodeId: "root", visits: 1, meanValue: 0.55 },
+      { nodeId: "root-0", visits: 1, meanValue: 0.1 },
+      { nodeId: "root", visits: 1, meanValue: 0.1 },
     ],
   },
   {
     iterationIndex: 2,
-    selectedPath: ["root", "root-2"],
-    expandedNodeId: "root-2",
-    candidateActions: [
-      { action: "ADD_52", operation: "add" as const, operand: 52, rationale: "Adds 52 to 700." },
-      { action: "ADD_40", operation: "add" as const, operand: 40, rationale: "Adds 40 to 700." },
-    ],
-    simulationResultValue: 0.62,
+    selectedPath: ["root", "root-0", "root-0-0"],
+    expandedNodeId: "root-0-0",
+    candidateActions: [a2],
+    simulationResultValue: 0.3,
     backpropUpdates: [
-      { nodeId: "root-2", visits: 5, meanValue: 0.62 },
-      { nodeId: "root", visits: 8, meanValue: 0.48 },
+      { nodeId: "root-0-0", visits: 1, meanValue: 0.3 },
+      { nodeId: "root-0", visits: 3, meanValue: 0.23 },
+      { nodeId: "root", visits: 3, meanValue: 0.2 },
     ],
   },
   {
     iterationIndex: 3,
-    selectedPath: ["root", "root-1", "root-1-a"],
-    expandedNodeId: "root-1-a",
-    candidateActions: [
-      { action: "ADD_52", operation: "add" as const, operand: 52, rationale: "Exact solution — 100×7+52=752." },
-    ],
-    simulationResultValue: 0.87,
+    selectedPath: ["root", "root-0", "root-0-0", "root-0-0-0"],
+    expandedNodeId: "root-0-0-0",
+    candidateActions: [a3],
+    simulationResultValue: 0.5,
     backpropUpdates: [
-      { nodeId: "root-1-a", visits: 4, meanValue: 0.87 },
-      { nodeId: "root-1", visits: 8, meanValue: 0.61 },
-      { nodeId: "root", visits: 16, meanValue: 0.52 },
+      { nodeId: "root-0-0-0", visits: 1, meanValue: 0.5 },
+      { nodeId: "root-0-0", visits: 3, meanValue: 0.37 },
+      { nodeId: "root-0", visits: 5, meanValue: 0.3 },
+      { nodeId: "root", visits: 8, meanValue: 0.26 },
     ],
   },
   {
     iterationIndex: 4,
-    selectedPath: ["root", "root-2", "root-2-a"],
-    expandedNodeId: "root-2-a",
-    candidateActions: [
-      { action: "ADD_52", operation: "add" as const, operand: 52, rationale: "Direct solution from 700." },
-    ],
-    simulationResultValue: 0.88,
+    selectedPath: ["root", "root-1"],
+    expandedNodeId: "root-1",
+    candidateActions: [{ action: "TRANSFORM", rationale: "Simplify the right side of the equation by performing the subtraction (17 − 9)." }],
+    simulationResultValue: 0.2,
     backpropUpdates: [
-      { nodeId: "root-2-a", visits: 4, meanValue: 0.88 },
-      { nodeId: "root-2", visits: 8, meanValue: 0.72 },
-      { nodeId: "root", visits: 26, meanValue: 0.55 },
+      { nodeId: "root-1", visits: 1, meanValue: 0.2 },
+      { nodeId: "root", visits: 12, meanValue: 0.29 },
     ],
   },
   {
     iterationIndex: 5,
-    selectedPath: ["root", "root-1", "root-1-a", "root-1-a-1"],
-    expandedNodeId: "root-1-a-1",
-    candidateActions: [
-      { action: "CONFIRM", operation: "add" as const, operand: 0, rationale: "Solution confirmed: 100×7+52=752." },
-    ],
+    selectedPath: ["root", "root-0", "root-0-0", "root-0-0-0", "root-0-0-0-0"],
+    expandedNodeId: "root-0-0-0-0",
+    candidateActions: [a4],
     simulationResultValue: 1.0,
     backpropUpdates: [
-      { nodeId: "root-1-a-1", visits: 3, meanValue: 1.0 },
-      { nodeId: "root-1-a", visits: 7, meanValue: 0.91 },
-      { nodeId: "root-1", visits: 13, meanValue: 0.63 },
-      { nodeId: "root", visits: 42, meanValue: 0.58 },
+      { nodeId: "root-0-0-0-0", visits: 1, meanValue: 1.0 },
+      { nodeId: "root-0-0-0", visits: 3, meanValue: 0.67 },
+      { nodeId: "root-0-0", visits: 5, meanValue: 0.44 },
+      { nodeId: "root-0", visits: 8, meanValue: 0.4 },
+      { nodeId: "root", visits: 20, meanValue: 0.35 },
     ],
   },
 ];
 
 export function getMockRun() {
-  const nextState = makeState({
-    expression: "100 × 7 + 52",
-    target: TARGET,
-    current: 752,
-    score: 1.0,
-    stepIndex: 2,
-    tokensUsed: ["100", "×", "7", "+", "52"],
-    state: "WIN",
-  });
-
   return runDatasetSchema.parse({
     sessionId: "math-run-01",
     title: "Arithmetic Solver",
@@ -308,19 +270,20 @@ export function getMockRun() {
     iterations,
     decision: {
       rootState,
-      candidates: actions,
-      childrenStats: actions.map((action, index) => ({
-        action,
-        visits: nodes[index + 1]?.visits ?? 1,
-        value: nodes[index + 1]?.meanValue ?? 0,
-      })),
-      bestAction: actions[2]!,
+      candidates: [a1, a2, a3, a4],
+      childrenStats: [
+        { action: a1, visits: 10, value: 0.28 },
+        { action: a2, visits: 7, value: 0.60 },
+        { action: a3, visits: 6, value: 0.76 },
+        { action: a4, visits: 5, value: 1.0 },
+      ],
+      bestAction: a4,
     },
     transition: {
-      actionTaken: actions[2]!,
+      actionTaken: a1,
       prevState: rootState,
-      nextState,
-      reward: 0.22,
+      nextState: step1State,
+      reward: 0.1,
     },
   });
 }

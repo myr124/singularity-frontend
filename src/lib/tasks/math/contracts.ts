@@ -1,19 +1,16 @@
 import { z } from "zod";
 
 export const envStateSchema = z.object({
-  expression: z.string(),
-  target: z.number(),
-  current: z.number(),
-  tokensUsed: z.array(z.string()),
-  state: z.enum(["RUNNING", "WIN", "GAME_OVER"]),
+  problem: z.string(),
+  working: z.string(),
+  finalAnswer: z.string().nullable(),
+  state: z.enum(["NOT_FINISHED", "WIN", "GAME_OVER"]),
   score: z.number(),
   stepIndex: z.number().int(),
 });
 
 export const actionCandidateSchema = z.object({
-  action: z.string(),
-  operation: z.enum(["add", "subtract", "multiply", "divide", "concat"]),
-  operand: z.number(),
+  action: z.enum(["TRANSFORM", "UNDERSTAND", "SOLVE_SUBPART", "VERIFY", "FINALIZE"]),
   rationale: z.string().nullable(),
 });
 

@@ -29,9 +29,9 @@ export function DecisionSummary<A extends { action: string; rationale: string | 
       </div>
       <p className="mt-3 text-sm leading-6 text-cyan-50/78">{decision.bestAction.rationale}</p>
       <div className="mt-5 space-y-3">
-        {decision.childrenStats.map((candidate) => (
+        {decision.childrenStats.map((candidate, i) => (
           <div
-            key={candidate.action.action}
+            key={`${candidate.action.action}-${i}`}
             className="rounded-[22px] border border-cyan-300/14 bg-white/[0.03] p-3"
           >
             <div className="flex items-center justify-between text-sm text-white">

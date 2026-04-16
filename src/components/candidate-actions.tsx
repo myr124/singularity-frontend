@@ -15,9 +15,9 @@ export function CandidateActions<A extends { action: string; rationale: string |
     <section className="subpanel rounded-[28px] p-5">
       <p className="text-xs uppercase tracking-[0.32em] text-cyan-100/55">Candidate Actions</p>
       <div className="mt-4 space-y-3">
-        {candidates.map((candidate) => (
+        {candidates.map((candidate, i) => (
           <article
-            key={formatActionKey(candidate)}
+            key={`${formatActionKey(candidate)}-${i}`}
             className="rounded-[22px] border border-cyan-300/14 bg-white/[0.03] p-3"
           >
             <div className="flex items-center justify-between">
